@@ -305,8 +305,5 @@ def adapt_vqe(
 
         energies.append(result.fun)
         params = result.x
-        #print("Energies are", energies, flush=True)
-        if commutator_debug:
-            print(f"Max commutator diff: {max_diff:.6e}", flush=True)
-    print("gr_energy:", energies[-1])
+
     return params, ash_excitation, energies
