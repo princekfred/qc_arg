@@ -1,7 +1,13 @@
-"""A set of quantum algorithms for near term quantum chemistry excited state calculations"""
+"""QSC-EOM and related quantum-chemistry solvers."""
 
-# Add imports here
-from .qc_arg import *
+from .UCCSD import gs_exact
+from .adaptvqe import adapt_vqe
+from .qc_arg import canvas
+from .qsceom import qsceom
 
+try:
+    from ._version import __version__
+except ImportError:
+    __version__ = "0+unknown"
 
-from ._version import __version__
+__all__ = ["__version__", "adapt_vqe", "canvas", "gs_exact", "qsceom"]
