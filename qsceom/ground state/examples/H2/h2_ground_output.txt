@@ -4,25 +4,34 @@ Bond length (Angstrom): 0.735
 Basis: sto-3g
 ADAPT iterations: 2
 Adapt gr energy (Hartree): -1.1373060357533873
-QSC-EOM gr energy (Hartree): -1.1373060357533873
-|ADAPT - FCI| error (Hartree): 1.2656542480726785e-14
-|QSC-EOM - FCI| error (Hartree): 1.2656542480726785e-14
+qsceom gr energy (Hartree): -1.1373060357533873
+ADAPT max gradient: 4.190878383016213e-10
+adapt-FCI overlap fidelity: 1.0000000000000004
+qsceom-FCI overlap fidelity: 1.0000000000000004
+ADAPT gr error (Hartree): 1.2656542480726785e-14
+qsceom gr error (Hartree): 1.2656542480726785e-14
 
 Bond length (Angstrom): 0.735
 Basis: sto-3g
 ADAPT iterations: 3
 Adapt gr energy (Hartree): -1.1373060357533804
-QSC-EOM gr energy (Hartree): -1.1373060357533809
-|ADAPT - FCI| error (Hartree): 1.9539925233402755e-14
-|QSC-EOM - FCI| error (Hartree): 1.9095836023552692e-14
+qsceom gr energy (Hartree): -1.1373060357533809
+ADAPT max gradient: 8.293858373811041e-10
+adapt-FCI overlap fidelity: 1.0000000000000004
+qsceom-FCI overlap fidelity: 1.0000000000000004
+ADAPT gr error (Hartree): 1.9539925233402755e-14
+qsceom gr error (Hartree): 1.9095836023552692e-14
 
 Bond length (Angstrom): 0.735
 Basis: sto-3g
 ADAPT iterations: 4
 Adapt gr energy (Hartree): -1.1373060357533746
-QSC-EOM gr energy (Hartree): -1.1373060357533744
-|ADAPT - FCI| error (Hartree): 2.531308496145357e-14
-|QSC-EOM - FCI| error (Hartree): 2.55351295663786e-14
+qsceom gr energy (Hartree): -1.1373060357533744
+ADAPT max gradient: 1.176998989235944e-09
+adapt-FCI overlap fidelity: 1.0
+qsceom-FCI overlap fidelity: 1.0
+ADAPT gr error (Hartree): 2.531308496145357e-14
+qsceom gr error (Hartree): 2.55351295663786e-14
 
 ===== FCI Reference =====
 Bond length (Angstrom): 0.735

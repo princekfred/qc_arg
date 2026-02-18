@@ -35,6 +35,8 @@ def adapt_vqe(
     pool_seed: Optional[int] = None,
     optimizer_method: str = "BFGS",
     optimizer_maxiter: int = 100_000_000,
+    return_max_gradients: bool = False,
+    print_max_gradients: bool = False,
 ):
     """Run an ADAPT-style VQE loop for a user-specified molecular geometry.
 
@@ -80,11 +82,17 @@ def adapt_vqe(
         Seed for the operator-pool sampler.
     optimizer_method
         SciPy optimization method (e.g. ``"BFGS"``, ``"COBYLA"``, ``"Nelder-Mead"``).
+    return_max_gradients
+        If True, include ADAPT max-gradient values per iteration in the return tuple.
+    print_max_gradients
+        If True, print the max ADAPT gradient at each ADAPT iteration.
 
     Returns
     -------
     tuple
-        ``(params, ash_excitation, energies)`` as produced by the optimization.
+        ``(params, ash_excitation, energies)`` by default, or
+        ``(params, ash_excitation, energies, adapt_gradients)`` if
+        ``return_max_gradients=True``.
 
     Raises
     ------
@@ -190,6 +198,7 @@ def adapt_vqe(
 
     energies = []
     ash_excitation = []
+    adapt_gradients = []
 
     hf_state = qml.qchem.hf_state(active_electrons, qubits)
     comm_shots = shots if commutator_shots is None else commutator_shots
@@ -293,7 +302,13 @@ def adapt_vqe(
         indices_str = re.findall(r"\d+", str(max_operator))
         excitations = [int(index) for index in indices_str]
         ash_excitation.append(excitations)
-
+        adapt_gradients.append(float(abs(max_value)))
+        if print_max_gradients:
+            print(
+                f"ADAPT iteration {j + 1} max gradient: {adapt_gradients[-1]}",
+                flush=True,
+            )
+        
         params = np.append(np.asarray(params), 0.0)
         result = minimize(
             cost,
@@ -305,5 +320,6 @@ def adapt_vqe(
 
         energies.append(result.fun)
         params = result.x
-
+    if return_max_gradients:
+        return params, ash_excitation, energies, adapt_gradients
     return params, ash_excitation, energies
