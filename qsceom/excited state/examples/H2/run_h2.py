@@ -14,8 +14,9 @@ from pathlib import Path
 
 import numpy as np
 
-# Make imports robust when running this file directly and when PYTHONPATH
-# accidentally contains "<repo>/qsceom" (which shadows the package).
+# Make imports robust for both layouts:
+# 1) package layout: qsceom/UCCSD.py
+# 2) local layout: qsceom/excited state/UCCSD.py
 script_path = Path(__file__).resolve()
 repo_root = script_path.parents[3]
 package_dir = repo_root / "qsceom"
@@ -34,9 +35,17 @@ if str(repo_root) in sys.path:
     sys.path.remove(str(repo_root))
 sys.path.insert(0, str(repo_root))
 
-from qsceom.UCCSD import gs_exact
-from qsceom.adaptvqe import adapt_vqe
-from qsceom.qsceom import qsceom
+try:
+    from qsceom.UCCSD import gs_exact
+    from qsceom.adaptvqe import adapt_vqe
+    from qsceom.qsceom import qsceom
+except ModuleNotFoundError:
+    module_root = script_path.parents[2]
+    if str(module_root) not in sys.path:
+        sys.path.insert(0, str(module_root))
+    from UCCSD import gs_exact
+    from adaptvqe import adapt_vqe
+    from qsceom import qsceom
 
 
 def parse_args():
@@ -46,8 +55,8 @@ def parse_args():
     )
     parser.add_argument(
         "--ground-method",
-        choices=["uccsd", "adaptvqe", "adapt_vqe"],
-        default="uccsd",
+        choices=["uccsd", "adapt_vqe"],
+        default=None,
         help="Ground-state method (adapt_vqe is accepted as an alias).",
     )
     parser.add_argument(
@@ -96,7 +105,7 @@ def parse_args():
         "--output-file",
         type=str,
         default=None,
-        help="Optional output path. If omitted, uses method-based default name.",
+        
     )
     return parser.parse_args()
 
@@ -114,7 +123,7 @@ def main():
 
     ground_shots = None if args.ground_shots == 0 else args.ground_shots
 
-    if args.ground_method == "adapt_vqe":
+    if args.ground_method == "uccsd":
         params, ground_energy = gs_exact(
             symbols=symbols,
             geometry=geometry,
@@ -174,11 +183,11 @@ def main():
     report = "\n".join(lines) + "\n"
 
     print()
-    #print(report, end="")
+    print(report, end="")
 
     
     if args.output_file is None:
-        suffix = "adapt" if args.ground_method == "adapt_vqe" else "uccsd"
+        suffix = "adapt" if args.ground_method == "adaptvqe" else "uccsd"
         output_path = Path(__file__).resolve().parent / f"h2_output_{suffix}.txt"
     else:
         output_path = Path(args.output_file)

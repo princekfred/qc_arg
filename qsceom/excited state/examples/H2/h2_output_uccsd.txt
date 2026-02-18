@@ -1,6 +1,6 @@
 ===== H2 QSC-EOM Run =====
 Bond length (Angstrom): 0.735
 Basis set: sto-3g
-Ground-state method: uccsd
+Ground-state method: None
 Ground-state energy (Hartree): -1.1373060357533813
 QSC-EOM eigenvalues (Hartree): [-0.52461556 -0.16275316  0.49505774]
