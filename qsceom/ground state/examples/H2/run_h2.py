@@ -207,8 +207,8 @@ def main():
         if fci_ground is not None:
             lines.extend(
                 [
-                    f"|ADAPT - FCI| error (Hartree): {abs(adapt_ground - fci_ground)}",
-                    f"|QSC-EOM - FCI| error (Hartree): {abs(qsc_ground - fci_ground)}",
+                    f"|ADAPT gr error (Hartree): {abs(adapt_ground - fci_ground)}",
+                    f"|qsceom gr error (Hartree): {abs(qsc_ground - fci_ground)}",
                 ]
             )
         reports.append("\n".join(lines))
