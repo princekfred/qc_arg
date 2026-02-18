@@ -24,7 +24,7 @@ def _load_adapt_vqe():
     return adapt_vqe, qsc_eom
 
 
-def parse_args():
+def build_parser():
     parser = argparse.ArgumentParser(
         description="H2 ground-state ADAPT-VQE example (default bond length: 0.735 A)."
     )
@@ -43,8 +43,9 @@ def parse_args():
     parser.add_argument(
         "--adapt-it",
         type=int,
-        default=3,
-        help="Number of ADAPT iterations.",
+        nargs="+",
+        default=[2, 3, 4],
+        help="One or more ADAPT iteration counts to run (e.g. --adapt-it 2 3 4).",
     )
     parser.add_argument(
         "--active-electrons",
@@ -65,6 +66,12 @@ def parse_args():
         help="Total molecular charge.",
     )
     parser.add_argument(
+        "--spin",
+        type=int,
+        default=0,
+        help="2S spin value used by PySCF (0 for singlet).",
+    )
+    parser.add_argument(
         "--shots",
         type=int,
         default=0,
@@ -77,54 +84,135 @@ def parse_args():
         help="Maximum optimizer iterations per ADAPT step.",
     )
     parser.add_argument(
+        "--fci-nroots",
+        type=int,
+        default=4,
+        help="Number of FCI roots to compute for the reference section.",
+    )
+    parser.add_argument(
+        "--skip-fci",
+        action="store_true",
+        help="Skip computing/printing the FCI reference section.",
+    )
+    parser.add_argument(
         "--output-file",
         type=str,
         default=None,
         help="Optional output report file path.",
     )
-    return parser.parse_args()
+    return parser
+
+
+def parse_args(argv=None):
+    parser = build_parser()
+    return parser.parse_args(argv)
+
+
+def _compute_fci(symbols, geometry, basis, charge, spin, nroots):
+    try:
+        import numpy as np
+        from pyscf import fci, gto, scf
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "FCI section requires PySCF and NumPy. Install with: "
+            "`pip install numpy pyscf`."
+        ) from exc
+
+    atom = [(symbols[i], tuple(float(x) for x in geometry[i])) for i in range(len(symbols))]
+    mol = gto.Mole()
+    mol.atom = atom
+    mol.unit = "angstrom"
+    mol.basis = basis
+    mol.charge = charge
+    mol.spin = spin
+    mol.symmetry = False
+    mol.build()
+
+    if mol.spin == 0 and mol.nelectron % 2 == 0:
+        mf = scf.RHF(mol)
+    else:
+        mf = scf.ROHF(mol)
+    mf.level_shift = 0.5
+    mf.diis_space = 12
+    mf.max_cycle = 100
+    mf.kernel()
+    if not mf.converged:
+        mf = scf.newton(mf).run()
+
+    cisolver = fci.FCI(mf)
+    cisolver.nroots = int(nroots)
+    energies, _ = cisolver.kernel()
+    energies = np.atleast_1d(np.asarray(energies, dtype=float))
+    return energies
 
 
 def main():
     args = parse_args()
+    if args.fci_nroots <= 0:
+        raise ValueError("--fci-nroots must be > 0")
     adapt_vqe, qsc_eom = _load_adapt_vqe()
 
     symbols = ["H", "H"]
     geometry = [[0.0, 0.0, 0.0], [0.0, 0.0, args.bond_length]]
 
     shots = None if args.shots == 0 else args.shots
-    params, ash_excitation, energies = adapt_vqe(
-        symbols=symbols,
-        geometry=geometry,
-        adapt_it=args.adapt_it,
-        basis=args.basis,
-        charge=args.charge,
-        active_electrons=args.active_electrons,
-        active_orbitals=args.active_orbitals,
-        shots=shots,
-        optimizer_maxiter=args.optimizer_maxiter,
-    )
-    eigvals, _ = qsc_eom(
-        symbols=symbols,
-        coordinates=geometry,
-        active_electrons=args.active_electrons,
-        active_orbitals=args.active_orbitals,
-        charge=args.charge,
-        params=params,
-        ash_excitation=ash_excitation,
-        shots=args.shots,
-        basis=args.basis,
-    )
+    reports = ["===== H2 Ground-State ADAPT-VQE ====="]
+    for adapt_it in args.adapt_it:
+        params, ash_excitation, energies = adapt_vqe(
+            symbols=symbols,
+            geometry=geometry,
+            adapt_it=adapt_it,
+            basis=args.basis,
+            charge=args.charge,
+            spin=args.spin,
+            active_electrons=args.active_electrons,
+            active_orbitals=args.active_orbitals,
+            shots=shots,
+            optimizer_maxiter=args.optimizer_maxiter,
+        )
+        eigvals, _ = qsc_eom(
+            symbols=symbols,
+            coordinates=geometry,
+            active_electrons=args.active_electrons,
+            active_orbitals=args.active_orbitals,
+            charge=args.charge,
+            params=params,
+            ash_excitation=ash_excitation,
+            shots=args.shots,
+            basis=args.basis,
+        )
 
-    lines = [
-        "===== H2 Ground-State ADAPT-VQE =====",
-        f"Bond length (Angstrom): {args.bond_length}",
-        f"Basis: {args.basis}",
-        f"ADAPT iterations: {args.adapt_it}",
-        f"Ground-state energy (Hartree): {energies[-1]}",
-        f"QSC-EOM eigenvalues (Hartree): {eigvals}",
-    ]
-    report = "\n".join(lines) + "\n"
+        lines = [
+            f"Bond length (Angstrom): {args.bond_length}",
+            f"Basis: {args.basis}",
+            f"ADAPT iterations: {adapt_it}",
+            f"Adapt gr energy (Hartree): {energies[-1]}",
+            f"QSC-EOM gr energy (Hartree): {eigvals[0]}",
+        ]
+        reports.append("\n".join(lines))
+
+    if not args.skip_fci:
+        fci_energies = _compute_fci(
+            symbols=symbols,
+            geometry=geometry,
+            basis=args.basis,
+            charge=args.charge,
+            spin=args.spin,
+            nroots=args.fci_nroots,
+        )
+        fci_lines = [
+            "===== FCI Reference =====",
+            f"Bond length (Angstrom): {args.bond_length}",
+            f"Basis: {args.basis}",
+            f"Charge: {args.charge}",
+            f"Spin (2S): {args.spin}",
+            f"Requested FCI roots: {args.fci_nroots}",
+            #f"FCI energies (Hartree): {fci_energies}",
+            f"FCI gr energy (Hartree): {fci_energies[0]}",
+        ]
+        reports.append("\n".join(fci_lines))
+
+    report = "\n\n".join(reports) + "\n"
     print(report, end="")
 
     if args.output_file is None:

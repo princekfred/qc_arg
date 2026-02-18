@@ -1,6 +1,0 @@
-===== H2 Ground-State ADAPT-VQE =====
-Bond length (Angstrom): 0.735
-Basis: sto-3g
-ADAPT iterations: 4
-Ground-state energy (Hartree): -1.1373060357533753
-QSC-EOM eigenvalues (Hartree): [-1.13730604 -0.52461556 -0.16275316  0.49505774]

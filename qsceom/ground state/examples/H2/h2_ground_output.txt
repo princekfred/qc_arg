@@ -1,6 +1,27 @@
 ===== H2 Ground-State ADAPT-VQE =====
+
+Bond length (Angstrom): 0.735
+Basis: sto-3g
+ADAPT iterations: 2
+Adapt gr energy (Hartree): -1.1373060357533873
+QSC-EOM gr energy (Hartree): -1.1373060357533873
+
 Bond length (Angstrom): 0.735
 Basis: sto-3g
 ADAPT iterations: 3
-Ground-state energy (Hartree): -1.1373060357533813
-QSC-EOM eigenvalues (Hartree): [-1.13730604 -0.52461556 -0.16275316  0.49505774]
+Adapt gr energy (Hartree): -1.1373060357533804
+QSC-EOM gr energy (Hartree): -1.1373060357533809
+
+Bond length (Angstrom): 0.735
+Basis: sto-3g
+ADAPT iterations: 4
+Adapt gr energy (Hartree): -1.1373060357533746
+QSC-EOM gr energy (Hartree): -1.1373060357533744
+
+===== FCI Reference =====
+Bond length (Angstrom): 0.735
+Basis: sto-3g
+Charge: 0
+Spin (2S): 0
+Requested FCI roots: 4
+FCI gr energy (Hartree): -1.1373060357534
