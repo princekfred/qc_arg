@@ -1,0 +1,14 @@
+===== FCI Reference =====
+Unit: angstrom
+Basis: sto-3g
+Charge: 0
+Spin (2S): 0
+Requested FCI roots: 8
+Atoms:
+H 0.0 0.0 0.0
+H 0.0 0.0 3.0
+H 0.0 0.0 6.0
+H 0.0 0.0 9.0
+FCI energies (Hartree): [-1.86729137 -1.86683314 -1.86634149 -1.86608737 -1.86584961 -1.86564549
+ -1.2716202  -1.27130183]
+Ground-state FCI energy (Hartree): -1.8672913724013755

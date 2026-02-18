@@ -313,7 +313,7 @@ def _plot_metrics(
 
     x, y = _finite_xy(iterations, qsceom_errors)
     if y:
-        ln = ax1.plot(x, y, marker="s", label="qsceom gr error")[0]
+        ln = ax1.plot(x, y, marker="o", label="qsceom gr error")[0]
         lines.append(ln)
         labels.append(ln.get_label())
 
@@ -329,7 +329,7 @@ def _plot_metrics(
 
     x, y = _finite_xy(iterations, adapt_fidelities)
     if y:
-        ln = ax2.plot(x, y, marker="D", linestyle="--", label="adapt-FCI fidelity")[0]
+        ln = ax2.plot(x, y, marker="x", linestyle="--", label="adapt-FCI fidelity")[0]
         lines.append(ln)
         labels.append(ln.get_label())
 
