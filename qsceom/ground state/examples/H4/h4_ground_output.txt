@@ -1,0 +1,42 @@
+===== H4 Ground-State ADAPT-VQE =====
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+ADAPT iterations: 2
+Adapt gr energy (Hartree): -1.5516830282335743
+qsceom gr energy (Hartree): -1.8665341376379014
+ADAPT max gradient: 0.36322049305238147
+adapt-FCI overlap fidelity: 0.26717218133051657
+qsceom-FCI overlap fidelity: 0.6346685540754988
+ADAPT gr error (Hartree): 0.31560834416780126
+qsceom gr error (Hartree): 0.0007572347634741128
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+ADAPT iterations: 3
+Adapt gr energy (Hartree): -1.7268306448691955
+qsceom gr energy (Hartree): -1.8668642069336703
+ADAPT max gradient: 0.42500098735660796
+adapt-FCI overlap fidelity: 0.39218722547499846
+qsceom-FCI overlap fidelity: 0.8526307273017869
+ADAPT gr error (Hartree): 0.14046072753218009
+qsceom gr error (Hartree): 0.00042716546770527053
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+ADAPT iterations: 4
+Adapt gr energy (Hartree): -1.825329704928087
+qsceom gr energy (Hartree): -1.8663251537490695
+ADAPT max gradient: 0.2677664137752834
+adapt-FCI overlap fidelity: 0.5124298124095702
+qsceom-FCI overlap fidelity: 0.576769250291378
+ADAPT gr error (Hartree): 0.041961667473288555
+qsceom gr error (Hartree): 0.0009662186523060612
+
+===== FCI Reference =====
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+Charge: 0
+Spin (2S): 0
+Requested FCI roots: 4
+FCI gr energy (Hartree): -1.8672913724013755
