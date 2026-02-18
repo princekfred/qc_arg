@@ -155,8 +155,21 @@ def main():
     symbols = ["H", "H"]
     geometry = [[0.0, 0.0, 0.0], [0.0, 0.0, args.bond_length]]
 
+    fci_energies = None
+    fci_ground = None
+    if not args.skip_fci:
+        fci_energies = _compute_fci(
+            symbols=symbols,
+            geometry=geometry,
+            basis=args.basis,
+            charge=args.charge,
+            spin=args.spin,
+            nroots=args.fci_nroots,
+        )
+        fci_ground = float(fci_energies[0])
+
     shots = None if args.shots == 0 else args.shots
-    reports = []
+    reports = ["===== H2 Ground-State ADAPT-VQE ====="]
     for adapt_it in args.adapt_it:
         params, ash_excitation, energies = adapt_vqe(
             symbols=symbols,
@@ -182,25 +195,25 @@ def main():
             basis=args.basis,
         )
 
+        adapt_ground = float(energies[-1])
+        qsc_ground = float(eigvals[0])
         lines = [
-            "===== H2 Ground-State ADAPT-VQE =====",
             f"Bond length (Angstrom): {args.bond_length}",
             f"Basis: {args.basis}",
             f"ADAPT iterations: {adapt_it}",
-            f"Adapt gr energy (Hartree): {energies[-1]}",
-            f"QSC-EOM gr energy (Hartree): {eigvals[0]}",
+            f"Adapt gr energy (Hartree): {adapt_ground}",
+            f"QSC-EOM gr energy (Hartree): {qsc_ground}",
         ]
+        if fci_ground is not None:
+            lines.extend(
+                [
+                    f"|ADAPT - FCI| error (Hartree): {abs(adapt_ground - fci_ground)}",
+                    f"|QSC-EOM - FCI| error (Hartree): {abs(qsc_ground - fci_ground)}",
+                ]
+            )
         reports.append("\n".join(lines))
 
     if not args.skip_fci:
-        fci_energies = _compute_fci(
-            symbols=symbols,
-            geometry=geometry,
-            basis=args.basis,
-            charge=args.charge,
-            spin=args.spin,
-            nroots=args.fci_nroots,
-        )
         fci_lines = [
             "===== FCI Reference =====",
             f"Bond length (Angstrom): {args.bond_length}",
