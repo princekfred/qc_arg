@@ -159,18 +159,20 @@ def qsc_eom(
     wires = range(qubits)
     hf_state = qml.qchem.hf_state(active_electrons, qubits)
 
+    null_state = np.zeros(qubits,int)
     excitation_configs = inite(active_electrons, qubits)
     dev = _make_device(qubits, norm_shots)
 
     @qml.qnode(dev)
-    def circuit_d(curr_params, occ):
+    def circuit_d(params, occ, wires, hf_state, ash_excitation):
         for w in occ:
             qml.X(wires=w)
-        _apply_ansatz(curr_params, wires, s_wires, d_wires, hf_state, ash_excitation)
+        _apply_ansatz(params, wires, s_wires, d_wires, hf_state, ash_excitation)
         return qml.expval(hamiltonian)
 
     @qml.qnode(dev)
-    def circuit_od(curr_params, occ1, occ2):
+    def circuit_od(params, occ1, occ2, wires, hf_state, ash_excitation):
+    #def circuit_od(params, occ1, occ2,wires, s_wires, d_wires, hf_state):
         for w in occ1:
             qml.X(wires=w)
 
@@ -190,7 +192,7 @@ def qsc_eom(
                 else:
                     qml.CNOT(wires=[first, v])
 
-        _apply_ansatz(curr_params, wires, s_wires, d_wires, hf_state, ash_excitation)
+        _apply_ansatz(params, wires, s_wires, d_wires, hf_state, ash_excitation)
         return qml.expval(hamiltonian)
 
     comm, size, rank, mpi_sum = _mpi_context()
@@ -198,7 +200,7 @@ def qsc_eom(
 
     m_diag_local = np.zeros(mat_size)
     for i in range(rank, mat_size, size):
-        m_diag_local[i] = circuit_d(params, excitation_configs[i])
+        m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, null_state, ash_excitation)
 
     if comm is None:
         m_diag = m_diag_local
@@ -215,7 +217,7 @@ def qsc_eom(
                     m_tmp = m_diag[i]
                 else:
                     m_tmp = (
-                        circuit_od(params, excitation_configs[i], excitation_configs[j])
+                        circuit_od(params, excitation_configs[i], excitation_configs[j], wires, null_state, ash_excitation)
                         - m_diag[i] / 2.0
                         - m_diag[j] / 2.0
                     )
