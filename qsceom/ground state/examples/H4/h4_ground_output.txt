@@ -35,14 +35,14 @@ qsceom gr error (Hartree): 0.0003284199694546519
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
-ADAPT iterations: 8
-Adapt gr energy (Hartree): -1.8485533047285836
-qsceom gr energy (Hartree): -1.8664264069645071
-ADAPT max gradient: 0.032251481321120656
-adapt-FCI overlap fidelity: 0.4576752223578799
-qsceom-FCI overlap fidelity: 0.16759121743542985
-ADAPT gr error (Hartree): 0.018738067672791958
-qsceom gr error (Hartree): 0.0008649654368684256
+ADAPT iterations: 9
+Adapt gr energy (Hartree): -1.8665876198070386
+qsceom gr energy (Hartree): -1.8668813530759658
+ADAPT max gradient: 0.028900764753368748
+adapt-FCI overlap fidelity: 0.39217346099068545
+qsceom-FCI overlap fidelity: 0.8341693082980499
+ADAPT gr error (Hartree): 0.0007037525943369705
+qsceom gr error (Hartree): 0.0004100193254097384
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
@@ -95,5 +95,3 @@ Charge: 0
 Spin (2S): 0
 Requested FCI roots: 4
 FCI gr energy (Hartree): -1.8672913724013755
-
-qsceom-FCI overlap fidelity for first 5 FCI excited states at ADAPT iteration 8: excited state 1: 0.02031804390489509, excited state 2: 0.008732340841474933, excited state 3: 9.811664840126468e-29, excited state 4: 0.0018824359290160455, excited state 5: 5.266244920078353e-13
