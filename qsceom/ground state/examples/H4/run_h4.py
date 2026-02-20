@@ -183,7 +183,10 @@ def _build_fci_overlap_context(
     )
     matrix = qml.matrix(hamiltonian, wire_order=range(qubits))
     _, eigvecs = np.linalg.eigh(np.asarray(matrix))
-    fci_state = np.asarray(eigvecs[:, 0], dtype=complex)
+    fci_states = np.asarray(eigvecs, dtype=complex)
+    for idx in range(fci_states.shape[1]):
+        fci_states[:, idx] /= np.linalg.norm(fci_states[:, idx])
+    fci_state = np.asarray(fci_states[:, 0], dtype=complex)
     fci_state /= np.linalg.norm(fci_state)
 
     hf_state = qml.qchem.hf_state(active_electrons, qubits)
@@ -228,6 +231,7 @@ def _build_fci_overlap_context(
     return {
         "np": np,
         "fci_state": fci_state,
+        "fci_states": fci_states,
         "adapt_state_fn": adapt_state,
         "qsceom_basis_state_fn": qsceom_basis_state,
         "excitation_configs": excitation_configs,
@@ -250,16 +254,33 @@ def _compute_qsceom_fci_fidelity(
     qsceom_ground_vec,
     overlap_context,
 ):
-    np = overlap_context["np"]
     fci_state = overlap_context["fci_state"]
+    np = overlap_context["np"]
+    qsceom_state = _build_qsceom_state_from_vec(
+        params=params,
+        ash_excitation=ash_excitation,
+        qsceom_vec=qsceom_ground_vec,
+        overlap_context=overlap_context,
+    )
+    return float(abs(np.vdot(fci_state, qsceom_state)) ** 2)
+
+
+def _build_qsceom_state_from_vec(
+    params,
+    ash_excitation,
+    qsceom_vec,
+    overlap_context,
+):
+    np = overlap_context["np"]
+    fci_states = overlap_context["fci_states"]
     basis_state_fn = overlap_context["qsceom_basis_state_fn"]
     excitation_configs = overlap_context["excitation_configs"]
 
-    coeffs = np.asarray(qsceom_ground_vec, dtype=complex)
+    coeffs = np.asarray(qsceom_vec, dtype=complex)
     if len(coeffs) != len(excitation_configs):
         raise ValueError("QSC-EOM eigenvector dimension does not match excitation configs")
 
-    qsceom_state = np.zeros_like(fci_state, dtype=complex)
+    qsceom_state = np.zeros(fci_states.shape[0], dtype=complex)
     for coeff, occ in zip(coeffs, excitation_configs):
         basis_state = np.asarray(
             basis_state_fn(np.asarray(params), ash_excitation, occ),
@@ -267,7 +288,37 @@ def _compute_qsceom_fci_fidelity(
         )
         qsceom_state = qsceom_state + coeff * basis_state
     qsceom_state /= np.linalg.norm(qsceom_state)
-    return float(abs(np.vdot(fci_state, qsceom_state)) ** 2)
+    return qsceom_state
+
+
+def _compute_qsceom_fci_excited_fidelities(
+    params,
+    ash_excitation,
+    qsceom_eigvecs,
+    overlap_context,
+    n_excited_states=5,
+):
+    np = overlap_context["np"]
+    fci_states = overlap_context["fci_states"]
+    qsceom_vecs = np.asarray(qsceom_eigvecs, dtype=complex)
+
+    available_states = min(qsceom_vecs.shape[1], fci_states.shape[1])
+    max_excited_index = min(n_excited_states, max(available_states - 1, 0))
+
+    fidelities = []
+    for state_idx in range(1, max_excited_index + 1):
+        fci_target_state = np.asarray(fci_states[:, state_idx], dtype=complex)
+        fci_target_state /= np.linalg.norm(fci_target_state)
+        qsceom_state = _build_qsceom_state_from_vec(
+            params=params,
+            ash_excitation=ash_excitation,
+            qsceom_vec=qsceom_vecs[:, state_idx],
+            overlap_context=overlap_context,
+        )
+        fidelity = float(abs(np.vdot(fci_target_state, qsceom_state)) ** 2)
+        fidelities.append((state_idx, fidelity))
+
+    return fidelities
 
 
 def _plot_metrics(
@@ -393,6 +444,7 @@ def main():
     adapt_max_gradients = []
     adapt_fidelities = []
     qsceom_fidelities = []
+    qsceom_excited_fidelities_at_iter8 = None
     for adapt_it in args.adapt_it:
         params, ash_excitation, energies, adapt_gradients = adapt_vqe(
             symbols=symbols,
@@ -422,6 +474,7 @@ def main():
         adapt_ground = float(energies[-1])
         qsc_ground = float(eigvals[0])
         overlap_fidelity = None
+        qsceom_excited_fidelities = None
         if overlap_context is not None:
             overlap_fidelity = _compute_adapt_fci_fidelity(
                 params=params,
@@ -434,6 +487,14 @@ def main():
                 qsceom_ground_vec=eigvecs[:, 0],
                 overlap_context=overlap_context,
             )
+            if int(adapt_it) == 8:
+                qsceom_excited_fidelities_at_iter8 = _compute_qsceom_fci_excited_fidelities(
+                    params=params,
+                    ash_excitation=ash_excitation,
+                    qsceom_eigvecs=eigvecs,
+                    overlap_context=overlap_context,
+                    n_excited_states=5,
+                )
         else:
             qsceom_overlap_fidelity = None
         lines = [
@@ -489,6 +550,21 @@ def main():
             f"FCI gr energy (Hartree): {fci_energies[0]}",
         ]
         reports.append("\n".join(fci_lines))
+
+    if qsceom_excited_fidelities_at_iter8 is not None:
+        if qsceom_excited_fidelities_at_iter8:
+            excited_fidelity_summary = ", ".join(
+                f"excited state {state_idx}: {fidelity}"
+                for state_idx, fidelity in qsceom_excited_fidelities_at_iter8
+            )
+        else:
+            excited_fidelity_summary = (
+                "unavailable (no excited states in the current active-space basis)"
+            )
+        reports.append(
+            "qsceom-FCI overlap fidelity for first 5 FCI excited states at ADAPT iteration 8: "
+            f"{excited_fidelity_summary}"
+        )
 
     report = "\n\n".join(reports) + "\n"
     print(report, end="")
