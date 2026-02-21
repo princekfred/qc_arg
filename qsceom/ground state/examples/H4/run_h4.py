@@ -44,7 +44,7 @@ def build_parser():
         "--adapt-it",
         type=int,
         nargs="+",
-        default=[2, 4, 6, 9, 10, 12, 14, 16],
+        default=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
         help="One or more ADAPT iteration counts to run (e.g. --adapt-it 2 3 4).",
     )
     parser.add_argument(
@@ -80,7 +80,7 @@ def build_parser():
     parser.add_argument(
         "--optimizer-maxiter",
         type=int,
-        default=2000,
+        default=500,
         help="Maximum optimizer iterations per ADAPT step.",
     )
     parser.add_argument(
@@ -291,32 +291,6 @@ def _build_qsceom_state_from_vec(
     return qsceom_state
 
 
-def _compute_fci_overlaps_with_qsceom_state(
-    params,
-    ash_excitation,
-    qsceom_vec,
-    overlap_context,
-):
-    np = overlap_context["np"]
-    fci_states = overlap_context["fci_states"]
-    available_states = fci_states.shape[1]
-    qsceom_state = _build_qsceom_state_from_vec(
-        params=params,
-        ash_excitation=ash_excitation,
-        qsceom_vec=qsceom_vec,
-        overlap_context=overlap_context,
-    )
-
-    fidelities = []
-    for state_idx in range(available_states):
-        fci_target_state = np.asarray(fci_states[:, state_idx], dtype=complex)
-        fci_target_state /= np.linalg.norm(fci_target_state)
-        fidelity = float(abs(np.vdot(fci_target_state, qsceom_state)) ** 2)
-        fidelities.append((state_idx, fidelity))
-
-    return fidelities
-
-
 def _plot_metrics(
     iterations,
     adapt_errors,
@@ -440,7 +414,6 @@ def main():
     adapt_max_gradients = []
     adapt_fidelities = []
     qsceom_fidelities = []
-    qsceom0_fci_overlaps_at_iter8 = None
     for adapt_it in args.adapt_it:
         params, ash_excitation, energies, adapt_gradients = adapt_vqe(
             symbols=symbols,
@@ -470,7 +443,6 @@ def main():
         adapt_ground = float(energies[-1])
         qsc_ground = float(eigvals[0])
         overlap_fidelity = None
-        qsceom_excited_fidelities = None
         if overlap_context is not None:
             overlap_fidelity = _compute_adapt_fci_fidelity(
                 params=params,
@@ -483,13 +455,6 @@ def main():
                 qsceom_ground_vec=eigvecs[:, 0],
                 overlap_context=overlap_context,
             )
-            if int(adapt_it) == 8:
-                qsceom0_fci_overlaps_at_iter8 = _compute_fci_overlaps_with_qsceom_state(
-                    params=params,
-                    ash_excitation=ash_excitation,
-                    qsceom_vec=eigvecs[:, 0],
-                    overlap_context=overlap_context,
-                )
         else:
             qsceom_overlap_fidelity = None
         lines = [
@@ -545,21 +510,6 @@ def main():
             f"FCI gr energy (Hartree): {fci_energies[0]}",
         ]
         reports.append("\n".join(fci_lines))
-
-    if qsceom0_fci_overlaps_at_iter8 is not None:
-        if qsceom0_fci_overlaps_at_iter8:
-            excited_fidelity_summary = ", ".join(
-                f"state {state_idx}: {fidelity}"
-                for state_idx, fidelity in qsceom0_fci_overlaps_at_iter8
-            )
-        else:
-            excited_fidelity_summary = (
-                "unavailable (no excited states in the current active-space basis)"
-            )
-        reports.append(
-            "<fci_x|qsceom_0> overlap fidelity for all available FCI states at ADAPT iteration 8: "
-            f"{excited_fidelity_summary}"
-        )
 
     report = "\n\n".join(reports) + "\n"
     print(report, end="")

@@ -2,6 +2,17 @@
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
+ADAPT iterations: 1
+Adapt gr energy (Hartree): -1.411587063363032
+qsceom gr energy (Hartree): -1.8656454887722649
+ADAPT max gradient: 0.30992067609540874
+adapt-FCI overlap fidelity: 0.2553529742782512
+qsceom-FCI overlap fidelity: 1.1996020522579846e-27
+ADAPT gr error (Hartree): 0.45570430903834347
+qsceom gr error (Hartree): 0.001645883629110667
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
 ADAPT iterations: 2
 Adapt gr energy (Hartree): -1.5516830282336218
 qsceom gr energy (Hartree): -1.8665341389817571
@@ -10,6 +21,17 @@ adapt-FCI overlap fidelity: 0.26717204790055243
 qsceom-FCI overlap fidelity: 0.6346694917440593
 ADAPT gr error (Hartree): 0.31560834416775374
 qsceom gr error (Hartree): 0.0007572334196184194
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+ADAPT iterations: 3
+Adapt gr energy (Hartree): -1.7268306448693358
+qsceom gr energy (Hartree): -1.8668642071349366
+ADAPT max gradient: 0.4250009461403357
+adapt-FCI overlap fidelity: 0.3921872372233752
+qsceom-FCI overlap fidelity: 0.8526306723311858
+ADAPT gr error (Hartree): 0.14046072753203975
+qsceom gr error (Hartree): 0.0004271652664389336
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
@@ -24,6 +46,17 @@ qsceom gr error (Hartree): 0.0009662186908461212
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
+ADAPT iterations: 5
+Adapt gr energy (Hartree): -1.8331686305286792
+qsceom gr energy (Hartree): -1.8660551217004815
+ADAPT max gradient: 0.11454409899525392
+adapt-FCI overlap fidelity: 0.5103215418720755
+qsceom-FCI overlap fidelity: 0.7439785816741109
+ADAPT gr error (Hartree): 0.03412274187269637
+qsceom gr error (Hartree): 0.0012362507008940593
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
 ADAPT iterations: 6
 Adapt gr energy (Hartree): -1.8416613033609293
 qsceom gr energy (Hartree): -1.866962952431921
@@ -32,6 +65,28 @@ adapt-FCI overlap fidelity: 0.5168556626669613
 qsceom-FCI overlap fidelity: 0.7623001038635655
 ADAPT gr error (Hartree): 0.02563006904044629
 qsceom gr error (Hartree): 0.0003284199694546519
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+ADAPT iterations: 7
+Adapt gr energy (Hartree): -1.847899288931639
+qsceom gr energy (Hartree): -1.8664257677741205
+ADAPT max gradient: 0.0071967191538810284
+adapt-FCI overlap fidelity: 0.458963104822446
+qsceom-FCI overlap fidelity: 0.16802937143663862
+ADAPT gr error (Hartree): 0.019392083469736532
+qsceom gr error (Hartree): 0.0008656046272550455
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+ADAPT iterations: 8
+Adapt gr energy (Hartree): -1.8485533047285836
+qsceom gr energy (Hartree): -1.8664264069645071
+ADAPT max gradient: 0.032251481321120656
+adapt-FCI overlap fidelity: 0.4576752223578799
+qsceom-FCI overlap fidelity: 0.16759121743542985
+ADAPT gr error (Hartree): 0.018738067672791958
+qsceom gr error (Hartree): 0.0008649654368684256
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
@@ -57,6 +112,17 @@ qsceom gr error (Hartree): 0.0001018258565961272
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
+ADAPT iterations: 11
+Adapt gr energy (Hartree): -1.8666610482617414
+qsceom gr energy (Hartree): -1.8671894000344396
+ADAPT max gradient: 3.550878099040436e-05
+adapt-FCI overlap fidelity: 0.4869761433636941
+qsceom-FCI overlap fidelity: 0.9815217367613277
+ADAPT gr error (Hartree): 0.000630324139634153
+qsceom gr error (Hartree): 0.00010197236693598732
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
 ADAPT iterations: 12
 Adapt gr energy (Hartree): -1.866661286854338
 qsceom gr energy (Hartree): -1.867162061630895
@@ -68,6 +134,17 @@ qsceom gr error (Hartree): 0.00012931077048050632
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
+ADAPT iterations: 13
+Adapt gr energy (Hartree): -1.8666612895498633
+qsceom gr energy (Hartree): -1.8671619630915572
+ADAPT max gradient: 5.2006139956303765e-05
+adapt-FCI overlap fidelity: 0.48740442805995093
+qsceom-FCI overlap fidelity: 0.9774639936183137
+ADAPT gr error (Hartree): 0.0006300828515122259
+qsceom gr error (Hartree): 0.0001294093098183069
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
 ADAPT iterations: 14
 Adapt gr energy (Hartree): -1.8666613885863768
 qsceom gr energy (Hartree): -1.8671530093117896
@@ -76,6 +153,17 @@ adapt-FCI overlap fidelity: 0.48755117270668963
 qsceom-FCI overlap fidelity: 0.9756170637272393
 ADAPT gr error (Hartree): 0.0006299838149987913
 qsceom gr error (Hartree): 0.00013836308958592447
+
+H-H spacing (Angstrom): 3.0
+Basis: sto-3g
+ADAPT iterations: 15
+Adapt gr energy (Hartree): -1.8666613889371435
+qsceom gr energy (Hartree): -1.8671530088650903
+ADAPT max gradient: 1.7300730082856625e-05
+adapt-FCI overlap fidelity: 0.4875513713240897
+qsceom-FCI overlap fidelity: 0.9756106141159606
+ADAPT gr error (Hartree): 0.0006299834642320423
+qsceom gr error (Hartree): 0.00013836353628526865
 
 H-H spacing (Angstrom): 3.0
 Basis: sto-3g
