@@ -197,7 +197,7 @@ def _build_fci_overlap_context(
     s_wires, d_wires = qml.qchem.excitations_to_wires(singles, doubles)
     wires = range(qubits)
     excitation_configs = inite(active_electrons, qubits)
-    dev = qml.device("default.qubit", wires=qubits)
+    dev = qml.device("lightning.qubit", wires=qubits)
 
     def _apply_ansatz(curr_params, curr_ash_excitation):
         if curr_ash_excitation is None:
@@ -304,96 +304,173 @@ def _plot_metrics(
     plot_path,
 ):
     try:
+        import math
+        import matplotlib as mpl
         import matplotlib.pyplot as plt
+        from matplotlib.ticker import AutoMinorLocator, MaxNLocator
     except ImportError as exc:  # pragma: no cover
         raise ImportError(
             "Plotting requires matplotlib. Install with: `pip install matplotlib`."
         ) from exc
 
-    def _finite_xy(xs, ys):
+    def _finite_xy(xs, ys, positive_only=False):
         x_out = []
         y_out = []
         for x, y in zip(xs, ys):
-            if y == y:  # NaN-safe finite check for this use case.
-                x_out.append(x)
-                y_out.append(y)
+            y = float(y)
+            if not math.isfinite(y):
+                continue
+            if positive_only and y <= 0.0:
+                continue
+            x_out.append(int(x))
+            y_out.append(y)
         return x_out, y_out
 
-    fig, ax1 = plt.subplots(figsize=(9, 5))
-    ax1.set_title("H4 ADAPT/QSC-EOM Metrics vs ADAPT Iteration")
-    ax1.set_xlabel("ADAPT iterations")
-    ax1.set_ylabel("Error / Gradient (Hartree)")
-    ax1.set_yscale("log")
-    ax1.grid(True, which="both", alpha=0.25)
+    def _save_publication_figure(fig, output_path):
+        save_path = output_path if output_path.suffix else output_path.with_suffix(".png")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        save_kwargs = {"bbox_inches": "tight", "pad_inches": 0.02}
+        if save_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".tif", ".tiff"}:
+            save_kwargs["dpi"] = 600
+        fig.savefig(save_path, **save_kwargs)
 
-    lines = []
-    labels = []
+        return save_path
 
-    x, y = _finite_xy(iterations, adapt_errors)
-    if y:
-        ln = ax1.plot(x, y, marker="o", label="ADAPT gr error")[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
+    style_params = {
+        "font.family": "DejaVu Serif",
+        "mathtext.fontset": "dejavuserif",
+        "axes.labelsize": 15,
+        "axes.linewidth": 1.1,
+        "xtick.labelsize": 15,
+        "ytick.labelsize": 15,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "xtick.major.width": 1.0,
+        "ytick.major.width": 1.0,
+        "xtick.minor.width": 0.8,
+        "ytick.minor.width": 0.8,
+        "xtick.major.size": 5,
+        "ytick.major.size": 5,
+        "xtick.minor.size": 3,
+        "ytick.minor.size": 3,
+        "xtick.top": True,
+        "ytick.right": True,
+        "lines.linewidth": 2.0,
+        "lines.markersize": 8.0,
+        "legend.frameon": False,
+        "legend.fontsize": 9,
+        "savefig.dpi": 600,
+        "savefig.bbox": "tight",
+    }
 
-    x, y = _finite_xy(iterations, qsceom_errors)
-    if y:
-        ln = ax1.plot(x, y, marker="o", label="qsceom gr error")[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
+    with mpl.rc_context(style_params):
+        fig, ax1 = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)
+        ax1.set_xlabel("ADAPT iterations")
+        ax1.set_ylabel("Error from FCI (Ha)")
+        ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax1.xaxis.set_minor_locator(AutoMinorLocator())
+        ax1.grid(True, which="major", alpha=0.25, linewidth=0.6)
+        ax1.grid(True, which="minor", alpha=0.12, linewidth=0.4)
 
-    x, y = _finite_xy(iterations, adapt_max_gradients)
-    if y:
-        ln = ax1.plot(x, y, marker="^", label="ADAPT max gradient")[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
+        has_positive = False
+        for series in (adapt_errors, qsceom_errors, adapt_max_gradients):
+            if any(math.isfinite(float(v)) and float(v) > 0.0 for v in series):
+                has_positive = True
+                break
+        if has_positive:
+            ax1.set_yscale("log")
 
-    if lines:
-        ax1.legend(lines, labels, loc="best")
+        lines = []
+        labels = []
 
-    fig.tight_layout()
-    plot_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(plot_path, dpi=300)
-    plt.close(fig)
+        x, y = _finite_xy(iterations, adapt_errors, positive_only=has_positive)
+        if y:
+            line = ax1.plot(
+                x,
+                y,
+                color="#1f77b4",
+                marker="o",
+                linestyle="-",
+                label="ADAPT-VQE energy error",
+            )[0]
+            lines.append(line)
+            labels.append(line.get_label())
 
-    suffix = plot_path.suffix if plot_path.suffix else ".png"
-    fidelity_plot_path = plot_path.with_name(f"{plot_path.stem}_fidelity{suffix}")
-    fidelity_fig, fidelity_ax = plt.subplots(figsize=(9, 5))
-    fidelity_ax.set_title("H4 Overlap Fidelity vs ADAPT Iteration")
-    fidelity_ax.set_xlabel("ADAPT iterations")
-    fidelity_ax.set_ylabel("Overlap fidelity")
-    fidelity_ax.set_ylim(0.0, 1.01)
-    fidelity_ax.grid(True, which="both", alpha=0.25)
+        x, y = _finite_xy(iterations, qsceom_errors, positive_only=has_positive)
+        if y:
+            line = ax1.plot(
+                x,
+                y,
+                color="#b30000",
+                marker="o",
+                linestyle="-",
+                label="q-sc-EOM energy error",
+            )[0]
+            lines.append(line)
+            labels.append(line.get_label())
 
-    fidelity_lines = []
-    x, y = _finite_xy(iterations, adapt_fidelities)
-    if y:
-        line = fidelity_ax.plot(
-            x,
-            y,
-            marker="x",
-            linestyle="--",
-            label="adapt-FCI fidelity",
-        )[0]
-        fidelity_lines.append(line)
+        x, y = _finite_xy(iterations, adapt_max_gradients, positive_only=has_positive)
+        if y:
+            line = ax1.plot(
+                x,
+                y,
+                color="#466964",
+                marker="^",
+                linestyle="-",
+                label="ADAPT max gradient",
+            )[0]
+            lines.append(line)
+            labels.append(line.get_label())
 
-    x, y = _finite_xy(iterations, qsceom_fidelities)
-    if y:
-        line = fidelity_ax.plot(
-            x,
-            y,
-            marker="o",
-            linestyle="-.",
-            label="qsceom-FCI fidelity",
-        )[0]
-        fidelity_lines.append(line)
+        if lines:
+            ax1.legend(lines, labels, loc="best", handlelength=2.6)
 
-    if fidelity_lines:
-        fidelity_ax.legend(loc="best")
+        normalized_plot_path = _save_publication_figure(fig, plot_path)
+        plt.close(fig)
 
-    fidelity_fig.tight_layout()
-    fidelity_plot_path.parent.mkdir(parents=True, exist_ok=True)
-    fidelity_fig.savefig(fidelity_plot_path, dpi=300)
-    plt.close(fidelity_fig)
+        fidelity_plot_path = normalized_plot_path.with_name(
+            f"{normalized_plot_path.stem}_fidelity{normalized_plot_path.suffix}"
+        )
+        fidelity_fig, fidelity_ax = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)
+        fidelity_ax.set_xlabel("ADAPT iterations")
+        fidelity_ax.set_ylabel("Overlap fidelity")
+        fidelity_ax.set_ylim(0.0, 1.01)
+        fidelity_ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        fidelity_ax.xaxis.set_minor_locator(AutoMinorLocator())
+        fidelity_ax.yaxis.set_minor_locator(AutoMinorLocator())
+        fidelity_ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
+        fidelity_ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
+
+        fidelity_lines = []
+        x, y = _finite_xy(iterations, adapt_fidelities)
+        if y:
+            line = fidelity_ax.plot(
+                x,
+                y,
+                color="#1f77b4",
+                marker="o",
+                linestyle="-",
+                label="ADAPT-FCI fidelity",
+            )[0]
+            fidelity_lines.append(line)
+
+        x, y = _finite_xy(iterations, qsceom_fidelities)
+        if y:
+            line = fidelity_ax.plot(
+                x,
+                y,
+                color="#b30000",
+                marker="x",
+                linestyle="-",
+                label="q-sc-EOM-FCI fidelity",
+            )[0]
+            fidelity_lines.append(line)
+
+        if fidelity_lines:
+            fidelity_ax.legend(loc="best", handlelength=2.6)
+
+        _save_publication_figure(fidelity_fig, fidelity_plot_path)
+        plt.close(fidelity_fig)
 
 
 def main():
@@ -482,8 +559,8 @@ def main():
             f"H-H spacing (Angstrom): {args.spacing}",
             f"Basis: {args.basis}",
             f"ADAPT iterations: {adapt_it}",
-            f"Adapt gr energy (Hartree): {adapt_ground}",
-            f"qsceom gr energy (Hartree): {qsc_ground}",
+            f"Adapt gr energy (Ha): {adapt_ground}",
+            f"qsceom gr energy (Ha): {qsc_ground}",
         ]
         if len(adapt_gradients) > 0:
             lines.append(
@@ -507,8 +584,8 @@ def main():
             qsceom_err = abs(qsc_ground - fci_ground)
             lines.extend(
                 [
-                    f"ADAPT gr error (Hartree): {adapt_err}",
-                    f"qsceom gr error (Hartree): {qsceom_err}",
+                    f"ADAPT gr error (Ha): {adapt_err}",
+                    f"qsceom gr error (Ha): {qsceom_err}",
                 ]
             )
             adapt_errors.append(float(adapt_err))
@@ -527,8 +604,8 @@ def main():
             f"Charge: {args.charge}",
             f"Spin (2S): {args.spin}",
             f"Requested FCI roots: {args.fci_nroots}",
-            #f"FCI energies (Hartree): {fci_energies}",
-            f"FCI gr energy (Hartree): {fci_energies[0]}",
+            #f"FCI energies (Ha): {fci_energies}",
+            f"FCI gr energy (Ha): {fci_energies[0]}",
         ]
         reports.append("\n".join(fci_lines))
 
