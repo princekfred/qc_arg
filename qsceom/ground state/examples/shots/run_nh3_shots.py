@@ -200,12 +200,12 @@ def main(argv=None):
     output_txt = (
         Path(args.output_txt)
         if args.output_txt is not None
-        else script_dir / "nh3_qsceom_first_eig_stats.txt"
+        else script_dir / "nh3_shots.txt"
     )
     plot_path = (
         Path(args.plot_file)
         if args.plot_file is not None
-        else script_dir / "nh3_qsceom_first_eig_stats.png"
+        else script_dir / "nh3_shots.png"
     )
 
     symbols = list(input_cfg["symbols"])
