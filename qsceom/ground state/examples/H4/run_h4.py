@@ -104,7 +104,10 @@ def build_parser():
         "--plot-file",
         type=str,
         default=None,
-        help="Optional metrics plot image path (default: h4_error_plot.png).",
+        help=(
+            "Optional metrics plot image path (default: h4_error_plot.png). "
+            "Overlap fidelities are saved as <stem>_fidelity<suffix>."
+        ),
     )
     return parser
 
@@ -344,28 +347,6 @@ def _plot_metrics(
         lines.append(ln)
         labels.append(ln.get_label())
 
-    ax2 = ax1.twinx()
-    ax2.set_ylabel("Overlap fidelity")
-    ax2.set_ylim(0.0, 1.01)
-
-    x, y = _finite_xy(iterations, adapt_fidelities)
-    if y:
-        ln = ax2.plot(x, y, marker="x", linestyle="--", label="adapt-FCI fidelity")[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
-
-    x, y = _finite_xy(iterations, qsceom_fidelities)
-    if y:
-        ln = ax2.plot(
-            x,
-            y,
-            marker="x",
-            linestyle="--",
-            label="qsceom-FCI fidelity",
-        )[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
-
     if lines:
         ax1.legend(lines, labels, loc="best")
 
@@ -373,6 +354,46 @@ def _plot_metrics(
     plot_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(plot_path, dpi=300)
     plt.close(fig)
+
+    suffix = plot_path.suffix if plot_path.suffix else ".png"
+    fidelity_plot_path = plot_path.with_name(f"{plot_path.stem}_fidelity{suffix}")
+    fidelity_fig, fidelity_ax = plt.subplots(figsize=(9, 5))
+    fidelity_ax.set_title("H4 Overlap Fidelity vs ADAPT Iteration")
+    fidelity_ax.set_xlabel("ADAPT iterations")
+    fidelity_ax.set_ylabel("Overlap fidelity")
+    fidelity_ax.set_ylim(0.0, 1.01)
+    fidelity_ax.grid(True, which="both", alpha=0.25)
+
+    fidelity_lines = []
+    x, y = _finite_xy(iterations, adapt_fidelities)
+    if y:
+        line = fidelity_ax.plot(
+            x,
+            y,
+            marker="x",
+            linestyle="--",
+            label="adapt-FCI fidelity",
+        )[0]
+        fidelity_lines.append(line)
+
+    x, y = _finite_xy(iterations, qsceom_fidelities)
+    if y:
+        line = fidelity_ax.plot(
+            x,
+            y,
+            marker="o",
+            linestyle="-.",
+            label="qsceom-FCI fidelity",
+        )[0]
+        fidelity_lines.append(line)
+
+    if fidelity_lines:
+        fidelity_ax.legend(loc="best")
+
+    fidelity_fig.tight_layout()
+    fidelity_plot_path.parent.mkdir(parents=True, exist_ok=True)
+    fidelity_fig.savefig(fidelity_plot_path, dpi=300)
+    plt.close(fidelity_fig)
 
 
 def main():
