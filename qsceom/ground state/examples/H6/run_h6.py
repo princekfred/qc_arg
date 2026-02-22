@@ -482,8 +482,8 @@ def main():
             f"H-H spacing (Angstrom): {args.spacing}",
             f"Basis: {args.basis}",
             f"ADAPT iterations: {adapt_it}",
-            f"Adapt gr energy (Hartree): {adapt_ground}",
-            f"qsceom gr energy (Hartree): {qsc_ground}",
+            f"Adapt gr energy (Ha): {adapt_ground}",
+            f"qsceom gr energy (Ha): {qsc_ground}",
         ]
         if len(adapt_gradients) > 0:
             lines.append(
@@ -507,8 +507,8 @@ def main():
             qsceom_err = abs(qsc_ground - fci_ground)
             lines.extend(
                 [
-                    f"ADAPT gr error (Hartree): {adapt_err}",
-                    f"qsceom gr error (Hartree): {qsceom_err}",
+                    f"ADAPT gr error (Ha): {adapt_err}",
+                    f"qsceom gr error (Ha): {qsceom_err}",
                 ]
             )
             adapt_errors.append(float(adapt_err))
@@ -527,8 +527,8 @@ def main():
             f"Charge: {args.charge}",
             f"Spin (2S): {args.spin}",
             f"Requested FCI roots: {args.fci_nroots}",
-            #f"FCI energies (Hartree): {fci_energies}",
-            f"FCI gr energy (Hartree): {fci_energies[0]}",
+            #f"FCI energies (Ha): {fci_energies}",
+            f"FCI gr energy (Ha): {fci_energies[0]}",
         ]
         reports.append("\n".join(fci_lines))
 
@@ -536,14 +536,14 @@ def main():
     print(report, end="")
 
     if args.output_file is None:
-        output_path = Path(__file__).resolve().parent / "h6_ground_output.txt"
+        output_path = Path(__file__).resolve().parent / "H6_ground_output.txt"
     else:
         output_path = Path(args.output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(report, encoding="utf-8")
 
     if args.plot_file is None:
-        plot_path = output_path.with_name("h6_error_plot.png")
+        plot_path = output_path.with_name("H6_error_plot.png")
     else:
         plot_path = Path(args.plot_file)
     _plot_metrics(

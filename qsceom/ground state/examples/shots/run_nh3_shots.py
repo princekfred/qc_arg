@@ -138,6 +138,7 @@ def _build_parser():
 def _plot_stats(shots, means, variances, no_shot_value, plot_path):
     try:
         import numpy as np
+        import matplotlib as mpl
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
         raise ImportError(
@@ -150,38 +151,63 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
     var = np.asarray(variances, dtype=float)
     yerr = np.sqrt(np.clip(var, a_min=0.0, a_max=None))
 
-    fig, ax = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)
-    ax.axhline(
-        no_shot_value,
-        color="#1f77b4",
-        linestyle="-",
-        linewidth=1.8,
-        label=f"No-shot first eigenvalue = {no_shot_value:.8f}",
-    )
-    ax.errorbar(
-        x,
-        y,
-        yerr=yerr,
-        fmt="o",
-        color="#1f77b4",
-        ecolor="#1f77b4",
-        capsize=5,
-        elinewidth=1.4,
-        markersize=8,
-        label="Finite-shot mean ± 1σ",
-    )
-    ax.set_xscale("log")
-    ax.set_xticks(x)
-    ax.set_xticklabels([str(int(v)) for v in x])
-    ax.set_xlabel("Shot count")
-    ax.set_ylabel("Energy (Ha)")
-    #ax.set_title("NH3 QSC-EOM First Eigenvalue: No-Shot vs Finite Shots")
-    ax.grid(True, which="both", alpha=0.25)
-    ax.legend(loc="best")
+    style_params = {
+        "font.family": "DejaVu Serif",
+        "mathtext.fontset": "dejavuserif",
+        "axes.labelsize": 15,
+        "axes.linewidth": 1.1,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "xtick.major.width": 1.0,
+        "ytick.major.width": 1.0,
+        "xtick.minor.width": 0.8,
+        "ytick.minor.width": 0.8,
+        "xtick.major.size": 5,
+        "ytick.major.size": 5,
+        "xtick.minor.size": 3,
+        "ytick.minor.size": 3,
+        "xtick.top": True,
+        "ytick.right": True,
+        "legend.frameon": False,
+        "legend.fontsize": 9,
+        "savefig.dpi": 600,
+    }
 
-    plot_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(plot_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
+    with mpl.rc_context(style_params):
+        fig, ax = plt.subplots(figsize=(6.6, 4.0), constrained_layout=True)
+        ax.axhline(
+            no_shot_value,
+            color="#b30000",
+            linestyle="--",
+            linewidth=1.8,
+            label=f"No-shot baseline = {no_shot_value:.8f} Ha",
+        )
+        ax.errorbar(
+            x,
+            y,
+            yerr=yerr,
+            fmt="o",
+            color="#b30000",
+            ecolor="#b30000",
+            capsize=4,
+            elinewidth=1.4,
+            markersize=7,
+            label="Finite-shot mean ± 1σ",
+        )
+        ax.set_xscale("log")
+        ax.set_xticks(x)
+        ax.set_xticklabels([str(int(v)) for v in x])
+        ax.set_xlabel("QSC-EOM shot count")
+        ax.set_ylabel("First eigenvalue (Hartree)")
+        ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
+        ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
+        ax.legend(loc="best", handlelength=2.6)
+
+        plot_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(plot_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
+        plt.close(fig)
 
 
 def main(argv=None):
