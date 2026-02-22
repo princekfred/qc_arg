@@ -50,13 +50,13 @@ def build_parser():
     parser.add_argument(
         "--active-electrons",
         type=int,
-        default=4,
+        default=6,
         help="Number of active electrons.",
     )
     parser.add_argument(
         "--active-orbitals",
         type=int,
-        default=4,
+        default=6,
         help="Number of active orbitals.",
     )
     parser.add_argument(
