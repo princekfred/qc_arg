@@ -68,6 +68,7 @@ def fci_ground_energy(symbols, geometry, basis, charge, spin):
 def plot_results(d, adapt, qsceom, fci, err_adapt, err_qsceom, plot_path):
     try:
         import numpy as np
+        import matplotlib as mpl
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
         raise ImportError(
@@ -82,30 +83,58 @@ def plot_results(d, adapt, qsceom, fci, err_adapt, err_qsceom, plot_path):
     err_adapt = np.clip(np.asarray(err_adapt, dtype=float), 1e-16, None)
     err_qsceom = np.clip(np.asarray(err_qsceom, dtype=float), 1e-16, None)
 
-    fig, (ax_energy, ax_err) = plt.subplots(
-        2, 1, figsize=(7.0, 7.0), sharex=True, constrained_layout=True
-    )
+    style_params = {
+        "font.family": "DejaVu Serif",
+        "mathtext.fontset": "dejavuserif",
+        "axes.labelsize": 15,
+        "axes.linewidth": 1.1,
+        "xtick.labelsize": 15,
+        "ytick.labelsize": 15,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "xtick.major.width": 1.0,
+        "ytick.major.width": 1.0,
+        "xtick.minor.width": 0.8,
+        "ytick.minor.width": 0.8,
+        "xtick.major.size": 5,
+        "ytick.major.size": 5,
+        "xtick.minor.size": 3,
+        "ytick.minor.size": 3,
+        "xtick.top": True,
+        "ytick.right": True,
+        "lines.linewidth": 2.0,
+        "lines.markersize": 8.0,
+        "legend.frameon": False,
+        "legend.fontsize": 9,
+        "savefig.dpi": 600,
+        "savefig.bbox": "tight",
+    }
 
-    # Energy curves.
-    ax_energy.plot(x, adapt, "o-", color="black", label="ADAPT-VQE")
-    ax_energy.plot(x, qsceom, "v-", color="blue", label="QSC-EOM first")
-    ax_energy.plot(x, fci, "1-", color="red", label="FCI")
-    ax_energy.set_ylabel("Energy (Hartree)")
-    ax_energy.grid(True, which="both", alpha=0.25)
-    ax_energy.legend(loc="best", frameon=False)
+    with mpl.rc_context(style_params):
+        fig, (ax_energy, ax_err) = plt.subplots(
+            2, 1, figsize=(7.0, 7.0), sharex=True, constrained_layout=True
+        )
 
-    # Error from FCI (log scale).
-    ax_err.plot(x, err_adapt, "o-", color="black", label="|ADAPT - FCI|")
-    ax_err.plot(x, err_qsceom, "v-", color="blue", label="|QSC-EOM - FCI|")
-    ax_err.set_yscale("log")
-    ax_err.set_xlabel("Bond Distance (Å)")
-    ax_err.set_ylabel("Error from FCI (Hartree)")
-    ax_err.grid(True, which="both", alpha=0.25)
-    ax_err.legend(loc="best", frameon=False)
+        # Energy curves.
+        ax_energy.plot(x, adapt, "o-", color="black", label="ADAPT-VQE")
+        ax_energy.plot(x, qsceom, "v-", color="blue", label="QSC-EOM first")
+        ax_energy.plot(x, fci, "1-", color="red", label="FCI")
+        ax_energy.set_ylabel("Energy (Hartree)")
+        ax_energy.grid(True, which="both", alpha=0.25)
+        ax_energy.legend(loc="best")
 
-    plot_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(plot_path, dpi=600, bbox_inches="tight")
-    plt.close(fig)
+        # Error from FCI (log scale).
+        ax_err.plot(x, err_adapt, "o-", color="black", label="|ADAPT - FCI|")
+        ax_err.plot(x, err_qsceom, "v-", color="blue", label="|QSC-EOM - FCI|")
+        ax_err.set_yscale("log")
+        ax_err.set_xlabel("Bond Distance (Å)")
+        ax_err.set_ylabel("Error from FCI (Hartree)")
+        ax_err.grid(True, which="both", alpha=0.25)
+        ax_err.legend(loc="best")
+
+        plot_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(plot_path, dpi=600, bbox_inches="tight")
+        plt.close(fig)
 
 
 def parse_args(argv=None):
@@ -154,7 +183,7 @@ def main():
 
     adapt_vqe, qsc_eom = load_modules()
     symbols = ["N", "N"]
-    d = np.linspace(float(args.d_min), float(args.d_max), int(args.num_points))
+    d_vals = np.linspace(float(args.d_min), float(args.d_max), int(args.num_points))
     adapt_shots = None if args.shots == 0 else int(args.shots)
 
     adapt_energies = []
@@ -165,10 +194,10 @@ def main():
     report_lines = ["===== N2 Potential Energy Scan ====="]
 
     t_start = time.time()
-    for i, d in enumerate(d):
-        geometry = [[0.0, 0.0, float(d)], [0.0, 0.0, -0.5488]]
+    for i, d_val in enumerate(d_vals):
+        geometry = [[0.0, 0.0, float(d_val)], [0.0, 0.0, -0.5488]]
         print(
-            f"[{i + 1:02d}/{len(d):02d}] d={d:.6f} Angstrom: running ADAPT/QSC-EOM/FCI...",
+            f"[{i + 1:02d}/{len(d_vals):02d}] d={d_val:.6f} Angstrom: running ADAPT/QSC-EOM/FCI...",
             flush=True,
         )
 
@@ -218,7 +247,7 @@ def main():
             (
                 "d={d:.6f} Angstrom | ADAPT={ea:.12f} | QSC-EOM={eq:.12f} | "
                 "FCI={ef:.12f} | |ADAPT-FCI|={da:.6e} | |QSC-EOM-FCI|={dq:.6e}"
-            ).format(d=float(d), ea=e_adapt, eq=e_qsc, ef=e_fci, da=err_a, dq=err_q)
+            ).format(d=float(d_val), ea=e_adapt, eq=e_qsc, ef=e_fci, da=err_a, dq=err_q)
         )
 
     elapsed = time.time() - t_start
@@ -226,8 +255,8 @@ def main():
         [
             "",
             "Summary:",
-            f"points: {len(d)}",
-            f"d range (Angstrom): [{float(d[0]):.6f}, {float(d[-1]):.6f}]",
+            f"points: {len(d_vals)}",
+            f"d range (Angstrom): [{float(d_vals[0]):.6f}, {float(d_vals[-1]):.6f}]",
             f"basis: {args.basis}",
             f"adapt_it: {args.adapt_it}",
             f"active_electrons: {args.active_electrons}",
@@ -247,7 +276,7 @@ def main():
         plot_path = Path(args.plot_file)
 
     plot_results(
-        d,
+        d_vals,
         adapt_energies,
         qsceom_energies,
         fci_energies,
@@ -266,4 +295,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

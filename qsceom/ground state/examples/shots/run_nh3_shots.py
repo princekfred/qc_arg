@@ -156,8 +156,8 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
         "mathtext.fontset": "dejavuserif",
         "axes.labelsize": 15,
         "axes.linewidth": 1.1,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
+        "xtick.labelsize": 15,
+        "ytick.labelsize": 15,
         "xtick.direction": "in",
         "ytick.direction": "in",
         "xtick.major.width": 1.0,
@@ -170,11 +170,13 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
         "ytick.minor.size": 3,
         "xtick.top": True,
         "ytick.right": True,
+        "lines.linewidth": 2.0,
+        "lines.markersize": 8.0,
         "legend.frameon": False,
         "legend.fontsize": 9,
         "savefig.dpi": 600,
+        "savefig.bbox": "tight",
     }
-
     with mpl.rc_context(style_params):
         fig, ax = plt.subplots(figsize=(6.6, 4.0), constrained_layout=True)
         ax.axhline(

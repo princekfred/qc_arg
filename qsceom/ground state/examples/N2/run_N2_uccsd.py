@@ -131,6 +131,7 @@ def uccsd_ground_state_energy(
 def plot_results(d_vals, uccsd, qsceom, fci, err_uccsd, err_qsceom, plot_path):
     try:
         import numpy as np
+        import matplotlib as mpl
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
         raise ImportError(
@@ -145,30 +146,58 @@ def plot_results(d_vals, uccsd, qsceom, fci, err_uccsd, err_qsceom, plot_path):
     err_uccsd = np.clip(np.asarray(err_uccsd, dtype=float), 1e-16, None)
     err_qsceom = np.clip(np.asarray(err_qsceom, dtype=float), 1e-16, None)
 
-    fig, (ax_energy, ax_err) = plt.subplots(
-        2, 1, figsize=(7.0, 7.0), sharex=True, constrained_layout=True
-    )
+    style_params = {
+        "font.family": "DejaVu Serif",
+        "mathtext.fontset": "dejavuserif",
+        "axes.labelsize": 15,
+        "axes.linewidth": 1.1,
+        "xtick.labelsize": 15,
+        "ytick.labelsize": 15,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "xtick.major.width": 1.0,
+        "ytick.major.width": 1.0,
+        "xtick.minor.width": 0.8,
+        "ytick.minor.width": 0.8,
+        "xtick.major.size": 5,
+        "ytick.major.size": 5,
+        "xtick.minor.size": 3,
+        "ytick.minor.size": 3,
+        "xtick.top": True,
+        "ytick.right": True,
+        "lines.linewidth": 2.0,
+        "lines.markersize": 8.0,
+        "legend.frameon": False,
+        "legend.fontsize": 9,
+        "savefig.dpi": 600,
+        "savefig.bbox": "tight",
+    }
 
-    # Energy curves.
-    ax_energy.plot(x, uccsd, "o-", color="black", label="UCCSD-VQE")
-    ax_energy.plot(x, qsceom, "s--", color="blue", label="QSC-EOM first")
-    ax_energy.plot(x, fci, "^-.", color="red", label="FCI")
-    ax_energy.set_ylabel("Energy (Hartree)")
-    ax_energy.grid(True, which="both", alpha=0.25)
-    ax_energy.legend(loc="best", frameon=False)
+    with mpl.rc_context(style_params):
+        fig, (ax_energy, ax_err) = plt.subplots(
+            2, 1, figsize=(7.0, 7.0), sharex=True, constrained_layout=True
+        )
 
-    # Error from FCI (log scale).
-    ax_err.plot(x, err_uccsd, "o-", color="black", label="|UCCSD - FCI|")
-    ax_err.plot(x, err_qsceom, "s--", color="blue", label="|QSC-EOM - FCI|")
-    ax_err.set_yscale("log")
-    ax_err.set_xlabel("d (Angstrom)")
-    ax_err.set_ylabel("Error from FCI (Hartree)")
-    ax_err.grid(True, which="both", alpha=0.25)
-    ax_err.legend(loc="best", frameon=False)
+        # Energy curves.
+        ax_energy.plot(x, uccsd, "o-", color="black", label="UCCSD-VQE")
+        ax_energy.plot(x, qsceom, "s--", color="blue", label="QSC-EOM first")
+        ax_energy.plot(x, fci, "^-.", color="red", label="FCI")
+        ax_energy.set_ylabel("Energy (Hartree)")
+        ax_energy.grid(True, which="both", alpha=0.25)
+        ax_energy.legend(loc="best")
 
-    plot_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(plot_path, dpi=600, bbox_inches="tight")
-    plt.close(fig)
+        # Error from FCI (log scale).
+        ax_err.plot(x, err_uccsd, "o-", color="black", label="|UCCSD - FCI|")
+        ax_err.plot(x, err_qsceom, "s--", color="blue", label="|QSC-EOM - FCI|")
+        ax_err.set_yscale("log")
+        ax_err.set_xlabel("d (Angstrom)")
+        ax_err.set_ylabel("Error from FCI (Hartree)")
+        ax_err.grid(True, which="both", alpha=0.25)
+        ax_err.legend(loc="best")
+
+        plot_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(plot_path, dpi=600, bbox_inches="tight")
+        plt.close(fig)
 
 
 def parse_args(argv=None):
@@ -330,4 +359,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
