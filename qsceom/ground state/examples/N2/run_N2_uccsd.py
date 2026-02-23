@@ -207,7 +207,7 @@ def parse_args(argv=None):
     parser.add_argument("--d-min", type=float, default=0.4, help="Minimum d (Angstrom).")
     parser.add_argument("--d-max", type=float, default=2.0, help="Maximum d (Angstrom).")
     parser.add_argument("--num-points", type=int, default=30, help="Number of d points.")
-    parser.add_argument("--basis", type=str, default="sto-6g", help="Basis set.")
+    parser.add_argument("--basis", type=str, default="sto-3g", help="Basis set.")
     parser.add_argument("--active-electrons", type=int, default=4, help="Active electrons.")
     parser.add_argument("--active-orbitals", type=int, default=4, help="Active orbitals.")
     parser.add_argument("--charge", type=int, default=0, help="Total charge.")
