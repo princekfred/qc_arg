@@ -117,18 +117,18 @@ def plot_results(d, adapt, qsceom, fci, err_adapt, err_qsceom, plot_path):
 
         # Energy curves.
         ax_energy.plot(x, adapt, "o-", color="black", label="ADAPT-VQE")
-        ax_energy.plot(x, qsceom, "v-", color="blue", label="QSC-EOM first")
+        ax_energy.plot(x, qsceom, "v-", color="blue", label="q-sc-EOM")
         ax_energy.plot(x, fci, "1-", color="red", label="FCI")
         ax_energy.set_ylabel("Energy (Hartree)")
         ax_energy.grid(True, which="both", alpha=0.25)
         ax_energy.legend(loc="best")
 
         # Error from FCI (log scale).
-        ax_err.plot(x, err_adapt, "o-", color="black", label="|ADAPT - FCI|")
-        ax_err.plot(x, err_qsceom, "v-", color="blue", label="|QSC-EOM - FCI|")
+        ax_err.plot(x, err_adapt, "o-", color="black", label="ADAPT")
+        ax_err.plot(x, err_qsceom, "v-", color="blue", label="q-sc-EOM")
         ax_err.set_yscale("log")
         ax_err.set_xlabel("Bond Distance (Å)")
-        ax_err.set_ylabel("Error from FCI (Hartree)")
+        ax_err.set_ylabel("Error from FCI (Ha)")
         ax_err.grid(True, which="both", alpha=0.25)
         ax_err.legend(loc="best")
 
