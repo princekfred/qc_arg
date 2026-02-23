@@ -1,0 +1,34 @@
+NH3 QSC-EOM First-Eigenvalue Shot Statistics
+
+Input:
+  symbols: ['N', 'H', 'H', 'H']
+  geometry (angstrom): [[0.0, 0.0, 0.0], [2.526315789473684, 0.0, 0.0], [-0.506, 0.876, 0.0], [-0.506, -0.876, 0.0]]
+  basis: sto-6g
+  charge: 0
+  spin (2S): 0
+  active_electrons: 4
+  active_orbitals: 4
+  adapt_it: 10
+  adapt_shots: 0
+  qsceom_shots: [500, 1000, 10000]
+  runs_per_shot: 10
+
+ADAPT-VQE:
+  runtime_s: 86.649328
+  num_params: 10
+  num_excitations: 10
+  adapt_ground_energy_hartree: -55.765710954925
+
+No-shot QSC-EOM baseline:
+  runtime_s: 56.087718
+  first_eig: -55.823886728519
+
+Finite-shot statistics (first eigenvalue):
+  shots=500: mean=-55.888765949147, variance=2.148517767486e-04, stddev=1.465782305626e-02, mean_runtime_s=48.222241
+    first_eig_values: [-55.891881969632834, -55.88576155037633, -55.892090868553126, -55.87423053378318, -55.91450410186166, -55.90875400190915, -55.891099366972504, -55.8857404083962, -55.87628298158296, -55.86731370840003]
+  shots=1000: mean=-55.865765638473, variance=1.972071589743e-04, stddev=1.404304664146e-02, mean_runtime_s=49.292860
+    first_eig_values: [-55.87079148264497, -55.87148214492352, -55.86629873708789, -55.879466282344474, -55.85225132941168, -55.87046600488651, -55.848166623722406, -55.84045645231444, -55.881989033254314, -55.876288294138114]
+  shots=10000: mean=-55.828865965260, variance=2.285615206525e-05, stddev=4.780810816718e-03, mean_runtime_s=72.082937
+    first_eig_values: [-55.827712443902385, -55.83145590251453, -55.83337546682184, -55.828993096124506, -55.83788356020113, -55.831448897572606, -55.82162881483043, -55.82601820742148, -55.82522435821901, -55.824918904993474]
+
+Plot file: /Users/princefred/Desktop/qc_arg/qsceom/ground state/examples/shots/nh3_shots.png

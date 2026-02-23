@@ -182,9 +182,9 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
         ax.axhline(
             no_shot_value,
             color="#b30000",
-            linestyle="--",
+            linestyle="-",
             linewidth=1.8,
-            label=f"No-shot baseline = {no_shot_value:.8f} Ha",
+        
         )
         ax.errorbar(
             x,
@@ -196,13 +196,13 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
             capsize=4,
             elinewidth=1.4,
             markersize=7,
-            label="Finite-shot mean ± 1σ",
+            #label="Finite-shot mean ± 1σ",
         )
         ax.set_xscale("log")
         ax.set_xticks(x)
         ax.set_xticklabels([str(int(v)) for v in x])
-        ax.set_xlabel("QSC-EOM shot count")
-        ax.set_ylabel("First eigenvalue (Hartree)")
+        ax.set_xlabel("Shot count")
+        ax.set_ylabel("Energy(Ha)")
         ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
         ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
         ax.legend(loc="best", handlelength=2.6)
