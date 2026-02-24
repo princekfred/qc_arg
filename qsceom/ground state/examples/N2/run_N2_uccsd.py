@@ -27,10 +27,18 @@ def load_qsceom_module():
     return qsc_eom
 
 
-def fci_ground_energy(symbols, geometry, basis, charge, spin):
+def fci_ground_energy(
+    symbols,
+    geometry,
+    basis,
+    charge,
+    spin,
+    active_electrons,
+    active_orbitals,
+):
     try:
         import numpy as np
-        from pyscf import fci, gto, scf
+        from pyscf import gto, mcscf, scf
     except ImportError as exc:  # pragma: no cover
         raise ImportError(
             "FCI requires NumPy and PySCF. Install with: `pip install numpy pyscf`."
@@ -57,8 +65,14 @@ def fci_ground_energy(symbols, geometry, basis, charge, spin):
     if not mf.converged:
         mf = scf.newton(mf).run()
 
-    cisolver = fci.FCI(mf)
-    e0, _ = cisolver.kernel(nroots=1)
+    # Active-space FCI via CASCI.
+    cisolver = mcscf.CASCI(
+        mf,
+        ncas=int(active_orbitals),
+        nelecas=int(active_electrons),
+    )
+    cisolver.max_cycle_macro = 100
+    e0, _ = cisolver.kernel()
     return float(np.atleast_1d(np.asarray(e0, dtype=float))[0])
 
 
@@ -180,15 +194,15 @@ def plot_results(d_vals, uccsd, qsceom, fci, err_uccsd, err_qsceom, plot_path):
 
         # Energy curves.
         ax_energy.plot(x, uccsd, "o-", color="black", label="UCCSD-VQE")
-        ax_energy.plot(x, qsceom, "v-", color="blue", label="q-sc-EOM ")
-        ax_energy.plot(x, fci, "^-.", color="red", label="FCI")
+        ax_energy.plot(x, qsceom, "v-", color="#4421af", label="q-sc-EOM ")
+        ax_energy.plot(x, fci, "1-", color="#b30000", label="FCI")
         ax_energy.set_ylabel("Energy (Ha)")
         ax_energy.grid(True, which="both", alpha=0.25)
         ax_energy.legend(loc="best")
 
         # Error from FCI (log scale).
         ax_err.plot(x, err_uccsd, "o-", color="black", label="UCCSD")
-        ax_err.plot(x, err_qsceom, "v-", color="blue", label="QSC-EOM")
+        ax_err.plot(x, err_qsceom, "v-", color="#4421af", label="q-sc-EOM")
         ax_err.set_yscale("log")
         ax_err.set_xlabel("Bond Distance (Å)")
         ax_err.set_ylabel("Error from FCI (Ha)")
@@ -294,6 +308,8 @@ def main():
             basis=args.basis,
             charge=args.charge,
             spin=args.spin,
+            active_electrons=args.active_electrons,
+            active_orbitals=args.active_orbitals,
         )
 
         e_qsc = float(np.asarray(eigvals, dtype=float)[0])

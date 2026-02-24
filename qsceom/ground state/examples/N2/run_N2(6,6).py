@@ -30,10 +30,18 @@ def load_modules():
     return adapt_vqe, qsc_eom
 
 
-def fci_ground_energy(symbols, geometry, basis, charge, spin):
+def fci_ground_energy(
+    symbols,
+    geometry,
+    basis,
+    charge,
+    spin,
+    active_electrons,
+    active_orbitals,
+):
     try:
         import numpy as np
-        from pyscf import fci, gto, scf
+        from pyscf import gto, mcscf, scf
     except ImportError as exc:  # pragma: no cover
         raise ImportError(
             "FCI requires NumPy and PySCF. Install with: `pip install numpy pyscf`."
@@ -60,8 +68,14 @@ def fci_ground_energy(symbols, geometry, basis, charge, spin):
     if not mf.converged:
         mf = scf.newton(mf).run()
 
-    cisolver = fci.FCI(mf)
-    e0, _ = cisolver.kernel(nroots=1)
+    # Active-space FCI via CASCI.
+    cisolver = mcscf.CASCI(
+        mf,
+        ncas=int(active_orbitals),
+        nelecas=int(active_electrons),
+    )
+    cisolver.max_cycle_macro = 100
+    e0, _ = cisolver.kernel()
     return float(np.atleast_1d(np.asarray(e0, dtype=float))[0])
 
 
@@ -230,6 +244,8 @@ def main():
             basis=args.basis,
             charge=args.charge,
             spin=args.spin,
+            active_electrons=args.active_electrons,
+            active_orbitals=args.active_orbitals,
         )
 
         e_adapt = float(np.asarray(energies, dtype=float)[-1])
