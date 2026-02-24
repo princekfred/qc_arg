@@ -85,7 +85,7 @@ def plot_results(shots, means, variances, uccsd_no_shot_energy, plot_path):
 
 
 def main():
-    num_runs = 2
+    num_runs = 10
     shot_values = [500, 1000, 10000]
     seed0 = 170
 
