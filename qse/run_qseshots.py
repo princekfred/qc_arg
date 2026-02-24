@@ -86,7 +86,7 @@ def plot_results(shots, means, variances, uccsd_no_shot_energy, plot_path):
 
 def main():
     num_runs = 2
-    shot_values = [500]
+    shot_values = [500, 1000, 10000]
     seed0 = 170
 
     num_spartial_orbital = 4
@@ -98,7 +98,8 @@ def main():
         "H -0.506 -0.876 0.0"
     )
 
-    # UCCSD is kept analytic (no shots) as requested.
+    # First run without shots (analytic baseline).
+    # UCCSD is always analytic (no shots); only QSE uses `shots`.
     baseline = run_qse(
         atom=atom,
         basis="sto-6g",
@@ -110,12 +111,14 @@ def main():
     )
     uccsd_no_shot_energy = float(baseline["ground_energy"])
     qse_no_shot_first = float(baseline["qse_eigenvalues"][0])
-    print(f"UCCSD no-shot energy (Ha): {uccsd_no_shot_energy:.12f}")
-    print(f"QSE no-shot first eigenvalue (Ha): {qse_no_shot_first:.12f}")
+    print(f"UCCSD energy (Ha): {uccsd_no_shot_energy:.12f}")
+    print(f"qse gr (Ha): {qse_no_shot_first:.12f}")
 
     means = []
     variances = []
     for shot in shot_values:
+        if int(shot) <= 0:
+            continue
         values = []
         for run_idx in range(num_runs):
             run_seed = seed0 + run_idx

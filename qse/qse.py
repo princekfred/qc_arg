@@ -69,6 +69,7 @@ def get_frozen_core_energy(atom, basis, active_electrons, num_spartial_orbital):
 def solve_ground_state(active_problem, mapper, seed=170):
     algorithm_globals.random_seed = seed
 
+    # UCCSD-VQE is kept analytic (no shots).
     ansatz = UCCSD(
         active_problem.num_spatial_orbitals,
         active_problem.num_particles,
@@ -243,9 +244,13 @@ def run_qse(
     shot_repeats=1,
     use_aer_estimator=False,
 ):
-    # shots and uccsd_shots are kept in the signature for compatibility.
-    _ = shots
-    _ = uccsd_shots
+    # UCCSD shots are intentionally disabled in this workflow.
+    if uccsd_shots not in (0, None):
+        raise ValueError(
+            "UCCSD shots are disabled. Use uccsd_shots=0 and control only QSE shots via `shots`."
+        )
+    if shots is None:
+        shots = 0
 
     num_spartial_orbital = active_orbitals
     num_spin_orbitals = num_spartial_orbital * 2
