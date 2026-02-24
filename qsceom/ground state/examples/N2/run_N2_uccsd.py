@@ -72,7 +72,8 @@ def fci_ground_energy(
         nelecas=int(active_electrons),
     )
     cisolver.max_cycle_macro = 100
-    e0, _ = cisolver.kernel()
+    casci_out = cisolver.kernel()
+    e0 = casci_out[0] if isinstance(casci_out, (tuple, list)) else casci_out
     return float(np.atleast_1d(np.asarray(e0, dtype=float))[0])
 
 
