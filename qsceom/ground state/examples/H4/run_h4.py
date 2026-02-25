@@ -438,8 +438,8 @@ def _plot_metrics(
         fidelity_ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         fidelity_ax.xaxis.set_minor_locator(AutoMinorLocator())
         fidelity_ax.yaxis.set_minor_locator(AutoMinorLocator())
-        fidelity_ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
-        fidelity_ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
+        #fidelity_ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
+        #fidelity_ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
 
         fidelity_lines = []
         x, y = _finite_xy(iterations, adapt_fidelities)
