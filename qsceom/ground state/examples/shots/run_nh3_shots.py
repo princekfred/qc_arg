@@ -3,7 +3,8 @@
 
 Workflow
 --------
-1. Run ADAPT-VQE once with analytic expectations (no finite shots).
+1. Run the selected ground-state method once with analytic expectations
+   (no finite shots).
 2. Run QSC-EOM once with ``shots=0`` to get the no-shot baseline.
 3. For each requested shot count, run QSC-EOM ``N`` times and collect the
    first eigenvalue.
@@ -13,6 +14,7 @@ Workflow
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import sys
 import time
 from pathlib import Path
@@ -45,7 +47,22 @@ NH3_QSCEOM_SHOTS_INPUT = {
 }
 
 
-def _load_ground_modules():
+def _load_qsceom_module():
+    script_path = Path(__file__).resolve()
+    ground_state_dir = script_path.parents[2]
+    if str(ground_state_dir) not in sys.path:
+        sys.path.insert(0, str(ground_state_dir))
+
+    try:
+        from qsceom_par import qsc_eom
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            "Could not import qsc_eom from qsceom/ground state/qsceom_par.py."
+        ) from exc
+    return qsc_eom
+
+
+def _load_adapt_module():
     script_path = Path(__file__).resolve()
     ground_state_dir = script_path.parents[2]
     if str(ground_state_dir) not in sys.path:
@@ -53,12 +70,29 @@ def _load_ground_modules():
 
     try:
         from adaptvqe import adapt_vqe
-        from qsceom_par import qsc_eom
     except ModuleNotFoundError as exc:
         raise ImportError(
-            "Could not import adapt_vqe/qsc_eom from qsceom/ground state."
+            "Could not import adapt_vqe from qsceom/ground state/adaptvqe.py."
         ) from exc
-    return adapt_vqe, qsc_eom
+    return adapt_vqe
+
+
+def _load_uccsd_module():
+    script_path = Path(__file__).resolve()
+    uccsd_path = script_path.parents[3] / "excited state" / "UCCSD.py"
+    if not uccsd_path.is_file():
+        raise ImportError(f"Could not find excited-state UCCSD module at {uccsd_path}")
+
+    spec = importlib.util.spec_from_file_location("qsceom_excited_uccsd", uccsd_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(
+            f"Could not load module spec from {uccsd_path}"
+        )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    if not hasattr(mod, "gs_exact"):
+        raise ImportError(f"Module {uccsd_path} does not define gs_exact")
+    return mod.gs_exact
 
 
 def _load_input():
@@ -71,6 +105,12 @@ def _build_parser():
             "Run NH3 QSC-EOM first-eigenvalue shot statistics "
             "(baseline no-shot + repeated finite-shot runs)."
         )
+    )
+    parser.add_argument(
+        "--ground-method",
+        choices=["adapt", "adapt_vqe", "adaptvqe", "uccsd"],
+        default="uccsd",
+        help="Ground-state method used before QSC-EOM.",
     )
     parser.add_argument(
         "--adapt-it",
@@ -133,6 +173,48 @@ def _build_parser():
         help="Optional output plot path. Defaults to this file's directory.",
     )
     return parser
+
+
+def _normalize_ground_method(method):
+    if method in ("adapt", "adapt_vqe", "adaptvqe"):
+        return "adapt"
+    if method == "uccsd":
+        return "uccsd"
+    raise ValueError("ground_method must be one of: adapt, uccsd")
+
+
+def _compute_hf_energy(symbols, geometry, basis, charge, spin):
+    try:
+        from pyscf import gto, scf
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "Computing HF reference requires PySCF. Install with: `pip install pyscf`."
+        ) from exc
+
+    atom = [
+        (symbols[i], tuple(float(x) for x in geometry[i]))
+        for i in range(len(symbols))
+    ]
+    mol = gto.Mole()
+    mol.atom = atom
+    mol.unit = "angstrom"
+    mol.basis = basis
+    mol.charge = charge
+    mol.spin = spin
+    mol.symmetry = False
+    mol.build()
+
+    if mol.spin == 0 and mol.nelectron % 2 == 0:
+        mf = scf.RHF(mol)
+    else:
+        mf = scf.ROHF(mol)
+    mf.level_shift = 0.5
+    mf.diis_space = 12
+    mf.max_cycle = 100
+    mf.kernel()
+    if not mf.converged:
+        mf = scf.newton(mf).run()
+    return float(mf.e_tot)
 
 
 def _plot_stats(shots, means, variances, no_shot_value, plot_path):
@@ -200,7 +282,16 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
         )
         ax.set_xscale("log")
         ax.set_xticks(x)
-        ax.set_xticklabels([str(int(v)) for v in x])
+        shot_labels = []
+        for v in x:
+            iv = int(v)
+            if iv == 1000:
+                shot_labels.append(r"$10^3$")
+            elif iv == 10000:
+                shot_labels.append(r"$10^4$")
+            else:
+                shot_labels.append(str(iv))
+        ax.set_xticklabels(shot_labels)
         ax.set_xlabel("Shot count")
         ax.set_ylabel("Energy(Ha)")
         ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
@@ -215,13 +306,16 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
 def main(argv=None):
     parser = _build_parser()
     args = parser.parse_args(argv)
+    ground_method = _normalize_ground_method(args.ground_method)
 
     if args.runs_per_shot <= 0:
         raise ValueError("--runs-per-shot must be > 0")
-    if args.adapt_it <= 0:
+    if ground_method == "adapt" and args.adapt_it <= 0:
         raise ValueError("--adapt-it must be > 0")
 
-    adapt_vqe, qsc_eom = _load_ground_modules()
+    qsc_eom = _load_qsceom_module()
+    adapt_vqe = _load_adapt_module() if ground_method == "adapt" else None
+    gs_exact = _load_uccsd_module() if ground_method == "uccsd" else None
     input_cfg = _load_input()
 
     script_dir = Path(__file__).resolve().parent
@@ -242,26 +336,60 @@ def main(argv=None):
     adapt_shots_cfg = input_cfg.get("adaptvqe", {}).get("shots", 0)
     adapt_shots = None if adapt_shots_cfg in (None, 0) else int(adapt_shots_cfg)
 
-    print("Running ADAPT-VQE once (analytic mode)...", flush=True)
-    t0 = time.time()
-    params, ash_excitation, energies = adapt_vqe(
-        symbols=symbols,
-        geometry=geometry,
-        adapt_it=args.adapt_it,
-        basis=args.basis,
-        charge=args.charge,
-        spin=args.spin,
-        active_electrons=args.active_electrons,
-        active_orbitals=args.active_orbitals,
-        shots=adapt_shots,
-        optimizer_maxiter=args.optimizer_maxiter,
-    )
-    adapt_time_s = time.time() - t0
-
     try:
         import numpy as np
     except ImportError as exc:  # pragma: no cover
         raise ImportError("NumPy is required for statistics.") from exc
+    geometry = np.asarray(geometry, dtype=float)
+    print("Computing Hartree-Fock reference energy...", flush=True)
+    hf_energy = _compute_hf_energy(
+        symbols=symbols,
+        geometry=geometry,
+        basis=args.basis,
+        charge=args.charge,
+        spin=args.spin,
+    )
+
+    if ground_method == "adapt":
+        print("Running ADAPT-VQE once (analytic mode)...", flush=True)
+        t0 = time.time()
+        params, ash_excitation, energies = adapt_vqe(
+            symbols=symbols,
+            geometry=geometry,
+            adapt_it=args.adapt_it,
+            basis=args.basis,
+            charge=args.charge,
+            spin=args.spin,
+            active_electrons=args.active_electrons,
+            active_orbitals=args.active_orbitals,
+            shots=adapt_shots,
+            optimizer_maxiter=args.optimizer_maxiter,
+        )
+        ground_time_s = time.time() - t0
+        ground_energy = float(np.asarray(energies, dtype=float)[-1])
+    else:
+        print("Running excited-state UCCSD once (analytic mode only)...", flush=True)
+        t0 = time.time()
+        uccsd_shots = None
+        gs_out = gs_exact(
+            symbols=symbols,
+            geometry=geometry,
+            active_electrons=args.active_electrons,
+            active_orbitals=args.active_orbitals,
+            charge=args.charge,
+            basis=args.basis,
+            shots=uccsd_shots,
+            max_iter=args.optimizer_maxiter,
+            return_energy=True,
+        )
+        ground_time_s = time.time() - t0
+        if isinstance(gs_out, tuple) and len(gs_out) >= 2:
+            params, ground_energy = gs_out[0], gs_out[1]
+        else:
+            params = gs_out
+            ground_energy = float("nan")
+        ash_excitation = None
+        ground_energy = float(np.asarray(ground_energy, dtype=float))
 
     print("Running no-shot QSC-EOM baseline...", flush=True)
     t0 = time.time()
@@ -278,7 +406,6 @@ def main(argv=None):
     )
     baseline_time_s = time.time() - t0
     baseline_first = float(np.asarray(eigvals_baseline, dtype=float)[0])
-    adapt_ground_energy = float(np.asarray(energies, dtype=float)[-1])
 
     shot_results = []
     for shot in qsceom_shots:
@@ -343,18 +470,17 @@ def main(argv=None):
         f"  basis: {args.basis}",
         f"  charge: {args.charge}",
         f"  spin (2S): {args.spin}",
+        f"  hf_energy_hartree: {hf_energy:.12f}",
+        f"  ground_method: {ground_method}",
         f"  active_electrons: {args.active_electrons}",
         f"  active_orbitals: {args.active_orbitals}",
-        f"  adapt_it: {args.adapt_it}",
-        f"  adapt_shots: {0 if adapt_shots is None else int(adapt_shots)}",
         f"  qsceom_shots: {qsceom_shots}",
         f"  runs_per_shot: {args.runs_per_shot}",
         "",
-        "ADAPT-VQE:",
-        f"  runtime_s: {float(adapt_time_s):.6f}",
+        "Ground state:",
+        f"  runtime_s: {float(ground_time_s):.6f}",
         f"  num_params: {int(len(params))}",
-        f"  num_excitations: {int(len(ash_excitation))}",
-        f"  adapt_ground_energy_hartree: {adapt_ground_energy:.12f}",
+        f"  ground_energy_hartree: {ground_energy:.12f}",
         "",
         "No-shot QSC-EOM baseline:",
         f"  runtime_s: {float(baseline_time_s):.6f}",
@@ -362,6 +488,26 @@ def main(argv=None):
         "",
         "Finite-shot statistics (first eigenvalue):",
     ]
+    if ground_method == "adapt":
+        report_lines.insert(report_lines.index("Ground state:"), f"  adapt_it: {args.adapt_it}")
+        report_lines.insert(
+            report_lines.index("Ground state:"),
+            f"  adapt_shots: {0 if adapt_shots is None else int(adapt_shots)}",
+        )
+        report_lines.insert(
+            report_lines.index(f"  ground_energy_hartree: {ground_energy:.12f}"),
+            f"  num_excitations: {int(len(ash_excitation))}",
+        )
+    else:
+        report_lines.insert(report_lines.index("Ground state:"), "  adapt_it: n/a")
+        report_lines.insert(
+            report_lines.index("Ground state:"),
+            "  uccsd_shots: 0 (forced analytic)",
+        )
+        report_lines.insert(
+            report_lines.index(f"  ground_energy_hartree: {ground_energy:.12f}"),
+            "  num_excitations: full UCCSD pool",
+        )
 
     for entry in shot_results:
         report_lines.append(
@@ -375,7 +521,7 @@ def main(argv=None):
             )
         )
         report_lines.append(
-            f"    first_eig_values: {entry['first_eig_values']}"
+            f"    qsceom gr energies: {entry['first_eig_values']}"
         )
 
     report_lines.extend(
@@ -389,7 +535,8 @@ def main(argv=None):
     output_txt.write_text("\n".join(report_lines), encoding="utf-8")
 
     print("\nSummary (first eigenvalue only):", flush=True)
-    print(f"  ADAPT ground energy: {adapt_ground_energy:.10f}", flush=True)
+    print(f"  HF energy: {hf_energy:.10f}", flush=True)
+    print(f"  {ground_method} ground energy: {ground_energy:.10f}", flush=True)
     print(f"  no-shot baseline: {baseline_first:.10f}", flush=True)
     for entry in shot_results:
         print(

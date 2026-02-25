@@ -56,7 +56,7 @@ def plot_results(shots, means, variances, uccsd_no_shot_energy, plot_path):
         ax.axhline(
             float(uccsd_no_shot_energy),
             color="black",
-            linestyle="--",
+            linestyle="-",
             linewidth=1.8,
             label="UCCSD (no shots)",
         )
@@ -69,12 +69,21 @@ def plot_results(shots, means, variances, uccsd_no_shot_energy, plot_path):
             ecolor="blue",
             elinewidth=1.4,
             capsize=4,
-            label="QSE mean ± 1σ",
+            #label="QSE mean ± 1σ",
         )
         ax.set_xlabel("Shots")
         ax.set_ylabel("Energy (Ha)")
         ax.set_xticks(x)
-        ax.set_xticklabels([str(int(v)) for v in x])
+        shot_labels = []
+        for v in x:
+            iv = int(v)
+            if iv == 1000:
+                shot_labels.append(r"$10^3$")
+            elif iv == 10000:
+                shot_labels.append(r"$10^4$")
+            else:
+                shot_labels.append(str(iv))
+        ax.set_xticklabels(shot_labels)
         ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
         ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
         ax.legend(loc="best", handlelength=2.6)
@@ -109,8 +118,10 @@ def main():
         shots=0,
         uccsd_shots=0,
     )
+    hf_no_shot_energy = float(baseline["hf_energy"])
     uccsd_no_shot_energy = float(baseline["ground_energy"])
     qse_no_shot_first = float(baseline["qse_eigenvalues"][0])
+    output_path = Path(__file__).resolve().with_name("nh3_qse_shots.txt")
     print(f"UCCSD energy (Ha): {uccsd_no_shot_energy:.12f}")
     print(f"qse gr (Ha): {qse_no_shot_first:.12f}")
 
@@ -156,8 +167,24 @@ def main():
         plot_path=plot_path,
     )
     print(
-        f"QSE no-shot first eigenvalue used once (Ha): {qse_no_shot_first:.12f}"
+        f"QSE gr energy (Ha): {qse_no_shot_first:.12f}"
     )
+    lines = [
+        "NH3 QSE shot study",
+        f"HF energy (Ha): {hf_no_shot_energy:.12f}",
+        f"UCCSD energy (Ha, no shots): {uccsd_no_shot_energy:.12f}",
+        f"QSE first eigenvalue (Ha, no shots): {qse_no_shot_first:.12f}",
+        "",
+        f"shot_values: {shot_values}",
+        f"runs_per_shot: {num_runs}",
+        "",
+    ]
+    for shot, mean, variance in zip(shot_values, means, variances):
+        lines.append(
+            f"shots={int(shot)}: mean={float(mean):.12f} Ha, variance={float(variance):.12e}"
+        )
+    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"TXT written to: {output_path}")
     print(f"Plot written to: {plot_path}")
 
 

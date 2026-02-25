@@ -66,6 +66,12 @@ def get_frozen_core_energy(atom, basis, active_electrons, num_spartial_orbital):
     return frozen_core_energy
 
 
+def get_hf_energy(atom, basis):
+    mol = gto.M(atom=atom, basis=basis, verbose=0)
+    mf = scf.RHF(mol).run()
+    return mf.e_tot
+
+
 def solve_ground_state(active_problem, mapper, seed=170):
     algorithm_globals.random_seed = seed
 
@@ -270,6 +276,7 @@ def run_qse(
         active_electrons=active_electrons,
         num_spartial_orbital=num_spartial_orbital,
     )
+    hf_energy = get_hf_energy(atom=atom, basis=basis)
 
     mapper = JordanWignerMapper()
     qubit_op = mapper.map(active_problem.hamiltonian.second_q_op())
@@ -300,6 +307,7 @@ def run_qse(
     eig = np.asarray(eigenvalues_shots[-1]) + core
 
     return {
+        "hf_energy": float(hf_energy),
         "ground_energy": ground_energy,
         "qse_eigenvalues": eig,
         "qse_eigenvectors": ev,

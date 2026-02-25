@@ -164,15 +164,16 @@ def qsc_eom(
     dev = _make_device(qubits, norm_shots)
 
     @qml.qnode(dev)
-    def circuit_d(params, occ, wires, hf_state, ash_excitation):
+    #def circuit_d(params, occ, wires, hf_state, ash_excitation):
+    def circuit_d(params, occ, wires, s_wires, d_wires, hf_state):
         for w in occ:
             qml.X(wires=w)
         _apply_ansatz(params, wires, s_wires, d_wires, hf_state, ash_excitation)
         return qml.expval(hamiltonian)
 
     @qml.qnode(dev)
-    def circuit_od(params, occ1, occ2, wires, hf_state, ash_excitation):
-    #def circuit_od(params, occ1, occ2,wires, s_wires, d_wires, hf_state):
+    #def circuit_od(params, occ1, occ2, wires, hf_state, ash_excitation):
+    def circuit_od(params, occ1, occ2,wires, s_wires, d_wires, hf_state):
         for w in occ1:
             qml.X(wires=w)
 
@@ -200,7 +201,8 @@ def qsc_eom(
 
     m_diag_local = np.zeros(mat_size)
     for i in range(rank, mat_size, size):
-        m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, null_state, ash_excitation)
+        #m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, null_state, ash_excitation)
+        m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, s_wires, d_wires, null_state)
 
     if comm is None:
         m_diag = m_diag_local
@@ -217,7 +219,8 @@ def qsc_eom(
                     m_tmp = m_diag[i]
                 else:
                     m_tmp = (
-                        circuit_od(params, excitation_configs[i], excitation_configs[j], wires, null_state, ash_excitation)
+                        #circuit_od(params, excitation_configs[i], excitation_configs[j], wires, null_state, ash_excitation)
+                        circuit_od(params, excitation_configs[i], excitation_configs[j], wires, s_wires, d_wires, null_state)
                         - m_diag[i] / 2.0
                         - m_diag[j] / 2.0
                     )

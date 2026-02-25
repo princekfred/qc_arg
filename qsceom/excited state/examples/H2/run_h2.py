@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""Run H2 with selectable basis and ground-state method, then QSC-EOM.
+"""Run H2 with selectable ground-state method, then QSC-EOM.
 
 Example
 -------
-python qsceom/examples/H2/run_h2.py --ground-method uccsd --basis sto-3g
+python "qsceom/excited state/examples/H2/run_h2.py" --ground-method uccsd --basis sto-3g
 """
 
 from __future__ import annotations
@@ -55,9 +55,9 @@ def parse_args():
     )
     parser.add_argument(
         "--ground-method",
-        choices=["uccsd", "adapt_vqe"],
-        default=None,
-        help="Ground-state method (adapt_vqe is accepted as an alias).",
+        choices=["adapt", "adapt_vqe", "adaptvqe", "uccsd"],
+        default="adapt",
+        help="Ground-state method. Use `adapt` or `uccsd`.",
     )
     parser.add_argument(
         "--bond-length",
@@ -110,10 +110,17 @@ def parse_args():
     return parser.parse_args()
 
 
+def normalize_ground_method(method: str) -> str:
+    if method in ("adapt", "adapt_vqe", "adaptvqe"):
+        return "adapt"
+    if method == "uccsd":
+        return "uccsd"
+    raise ValueError("ground_method must be one of: adapt, uccsd")
+
+
 def main():
     args = parse_args()
-    if args.ground_method == "adapt_vqe":
-        args.ground_method = "adaptvqe"
+    method = normalize_ground_method(args.ground_method)
 
     symbols = ["H", "H"]
     geometry = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, args.bond_length]])
@@ -123,7 +130,7 @@ def main():
 
     ground_shots = None if args.ground_shots == 0 else args.ground_shots
 
-    if args.ground_method == "uccsd":
+    if method == "uccsd":
         params, ground_energy = gs_exact(
             symbols=symbols,
             geometry=geometry,
@@ -176,7 +183,7 @@ def main():
         "===== H2 QSC-EOM Run =====",
         f"Bond length (Angstrom): {args.bond_length}",
         f"Basis set: {args.basis}",
-        f"Ground-state method: {args.ground_method}",
+        f"Ground-state method: {method}",
         f"Ground-state energy (Hartree): {ground_energy}",
         f"QSC-EOM eigenvalues (Hartree): {excited_sorted}",
     ]
@@ -187,7 +194,7 @@ def main():
 
     
     if args.output_file is None:
-        suffix = "adapt" if args.ground_method == "adaptvqe" else "uccsd"
+        suffix = "adapt" if method == "adapt" else "uccsd"
         output_path = Path(__file__).resolve().parent / f"h2_output_{suffix}.txt"
     else:
         output_path = Path(args.output_file)
