@@ -71,6 +71,7 @@ def plot_results(shots, means, variances, uccsd_no_shot_energy, plot_path):
             capsize=4,
             #label="QSE mean ± 1σ",
         )
+        ax.set_xscale("log")
         ax.set_xlabel("Shots")
         ax.set_ylabel("Energy (Ha)")
         ax.set_xticks(x)
@@ -86,7 +87,7 @@ def plot_results(shots, means, variances, uccsd_no_shot_energy, plot_path):
         ax.set_xticklabels(shot_labels)
         ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
         ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
-        ax.legend(loc="best", handlelength=2.6)
+        #ax.legend(loc="best", handlelength=2.6)
 
         plot_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(plot_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
@@ -117,6 +118,7 @@ def main():
         seed=seed0,
         shots=0,
         uccsd_shots=0,
+        use_aer_estimator=True,
     )
     hf_no_shot_energy = float(baseline["hf_energy"])
     uccsd_no_shot_energy = float(baseline["ground_energy"])
@@ -141,6 +143,7 @@ def main():
                 seed=run_seed,
                 shots=int(shot),
                 uccsd_shots=0,
+                use_aer_estimator=True,
             )
             qse_gr = float(results["qse_eigenvalues"][0])
             values.append(qse_gr)

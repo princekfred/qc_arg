@@ -1,0 +1,11 @@
+NH3 QSE shot study
+HF energy (Ha): -55.564069321633
+UCCSD energy (Ha, no shots): -55.821946943892
+QSE first eigenvalue (Ha, no shots): -55.823684321470
+
+shot_values: [500, 1000, 10000]
+runs_per_shot: 10
+
+shots=500: mean=-51.923364497097 Ha, variance=1.476977569350e+02
+shots=1000: mean=-62.958280787435 Ha, variance=1.658831822949e+02
+shots=10000: mean=-57.938082036669 Ha, variance=1.961844307865e+00
