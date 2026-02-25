@@ -369,9 +369,7 @@ def _plot_metrics(
         ax1.set_ylabel("Error from FCI (Ha)")
         ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax1.xaxis.set_minor_locator(AutoMinorLocator())
-        ax1.grid(True, which="major", alpha=0.25, linewidth=0.6)
-        ax1.grid(True, which="minor", alpha=0.12, linewidth=0.4)
-
+     
         has_positive = False
         for series in (adapt_errors, qsceom_errors, adapt_max_gradients):
             if any(math.isfinite(float(v)) and float(v) > 0.0 for v in series):

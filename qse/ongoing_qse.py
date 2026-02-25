@@ -21,7 +21,7 @@ from pyscf import gto, scf
 import pyscf.mcscf as mcscf
 
 #Create the all possible excitations
-num_spartial_orbital = 4
+num_spartial_orbital = 6
 num_spin_orbitals = num_spartial_orbital * 2
 
 # Initialize the mapper
@@ -74,7 +74,6 @@ def all_excitations(num_spin_orbitals):
 excitations = all_excitations(num_spin_orbitals)
 print(len(excitations))
 
-distances = np.linspace(0.60, 2.46, 2)
 #for d in distances:
 atom = f"N 0.0 0.0 0.0; H 2.526315789473684 0.0 0.0; H -0.506 0.876 0.0; H -0.506 -0.876 0.0"
 basis = "sto-6g"
@@ -82,7 +81,7 @@ driver = PySCFDriver(atom=atom,  basis=basis)
 
 problem = driver.run()
 
-active_electrons = 4
+active_electrons = 6
 active_transformer = ActiveSpaceTransformer(num_electrons=active_electrons, num_spatial_orbitals=num_spartial_orbital)
 active_problem = active_transformer.transform(problem)
 
@@ -180,8 +179,8 @@ for i in range(len(excitations) +1):
 
 eig, ev = scipy.linalg.eigh(M, S) 
 #eigval_exact.append(eigval)
-print("Eigenvalues from QSE:", eig + core)
 qse_no_shot_first = float(np.asarray(np.real_if_close(eig + core), dtype=float)[0])
+print(f"QSE first eigenvalue (no shots): {qse_no_shot_first:.12f}")
 
 
 
