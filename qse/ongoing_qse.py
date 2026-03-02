@@ -21,7 +21,7 @@ from pyscf import gto, scf
 import pyscf.mcscf as mcscf
 
 #Create the all possible excitations
-num_spartial_orbital = 6
+num_spartial_orbital = 4
 num_spin_orbitals = num_spartial_orbital * 2
 
 # Initialize the mapper
@@ -81,7 +81,7 @@ driver = PySCFDriver(atom=atom,  basis=basis)
 
 problem = driver.run()
 
-active_electrons = 6
+active_electrons = 4
 active_transformer = ActiveSpaceTransformer(num_electrons=active_electrons, num_spatial_orbitals=num_spartial_orbital)
 active_problem = active_transformer.transform(problem)
 

@@ -471,6 +471,36 @@ def _plot_metrics(
         plt.close(fidelity_fig)
 
 
+def _select_tracked_root(
+    eigvals,
+    eigvecs,
+    previous_root_vec=None,
+    target_energy=None,
+):
+    import numpy as np
+
+    eigvals_arr = np.real_if_close(np.asarray(eigvals))
+    if np.iscomplexobj(eigvals_arr):
+        eigvals_arr = np.real(eigvals_arr)
+    eigvals_arr = np.asarray(eigvals_arr, dtype=float)
+    eigvecs_arr = np.asarray(eigvecs, dtype=complex)
+
+    if previous_root_vec is None:
+        if target_energy is None:
+            root_idx = 0
+        else:
+            root_idx = int(np.argmin(np.abs(eigvals_arr - float(target_energy))))
+    else:
+        overlaps = np.abs(eigvecs_arr.conj().T @ previous_root_vec) ** 2
+        root_idx = int(np.argmax(overlaps))
+
+    tracked_vec = np.asarray(eigvecs_arr[:, root_idx], dtype=complex)
+    norm = np.linalg.norm(tracked_vec)
+    if norm > 0:
+        tracked_vec = tracked_vec / norm
+    return root_idx, eigvals_arr, tracked_vec
+
+
 def main():
     args = parse_args()
     if args.fci_nroots <= 0:
@@ -510,6 +540,7 @@ def main():
     adapt_max_gradients = []
     adapt_fidelities = []
     qsceom_fidelities = []
+    tracked_qsceom_vec = None
     for adapt_it in args.adapt_it:
         params, ash_excitation, energies, adapt_gradients = adapt_vqe(
             symbols=symbols,
@@ -537,7 +568,15 @@ def main():
         )
 
         adapt_ground = float(energies[-1])
-        qsc_ground = float(eigvals[0])
+        target_energy = fci_ground if fci_ground is not None else adapt_ground
+        tracked_root_idx, eigvals_real, tracked_qsceom_vec = _select_tracked_root(
+            eigvals=eigvals,
+            eigvecs=eigvecs,
+            previous_root_vec=tracked_qsceom_vec,
+            target_energy=target_energy,
+        )
+        qsc_ground = float(eigvals_real[tracked_root_idx])
+        qsc_lowest = float(eigvals_real[0])
         overlap_fidelity = None
         if overlap_context is not None:
             overlap_fidelity = _compute_adapt_fci_fidelity(
@@ -548,7 +587,7 @@ def main():
             qsceom_overlap_fidelity = _compute_qsceom_fci_fidelity(
                 params=params,
                 ash_excitation=ash_excitation,
-                qsceom_ground_vec=eigvecs[:, 0],
+                qsceom_ground_vec=eigvecs[:, tracked_root_idx],
                 overlap_context=overlap_context,
             )
         else:
@@ -559,6 +598,9 @@ def main():
             f"ADAPT iterations: {adapt_it}",
             f"Adapt gr energy (Ha): {adapt_ground}",
             f"qsceom gr energy (Ha): {qsc_ground}",
+            f"qsceom lowest-root energy (Ha): {qsc_lowest}",
+            f"qsceom tracked root index: {tracked_root_idx}",
+            f"qsceom eigenvalues (Ha): {eigvals_real.tolist()}",
         ]
         if len(adapt_gradients) > 0:
             lines.append(
