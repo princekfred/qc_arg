@@ -226,7 +226,7 @@ def plot_shot_stats(shots, means, variances, no_shot_value, plot_path):
         fig, ax = plt.subplots(figsize=(6.8, 4.2), constrained_layout=True)
         ax.axhline(
             float(no_shot_value),
-            color="black",
+            color="blue",
             linestyle="-",
             linewidth=1.8,
             label="QSE (no shots)",
@@ -242,7 +242,7 @@ def plot_shot_stats(shots, means, variances, no_shot_value, plot_path):
             capsize=4,
         )
         ax.set_xscale("log")
-        ax.set_xlabel("Shots")
+        ax.set_xlabel("Shot count")
         ax.set_ylabel("Energy (Ha)")
         ax.set_xticks(x)
         shot_labels = []
