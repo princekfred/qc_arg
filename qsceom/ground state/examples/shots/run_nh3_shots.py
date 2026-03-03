@@ -232,7 +232,7 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
     y = np.asarray(means, dtype=float)
     var = np.asarray(variances, dtype=float)
     yerr = np.sqrt(np.clip(var, a_min=0.0, a_max=None))
-
+    
     style_params = {
         "font.family": "DejaVu Serif",
         "mathtext.fontset": "dejavuserif",
@@ -295,8 +295,8 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
         ax.set_xlabel("Shot count")
         ax.set_ylabel("Energy(Ha)")
         ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
-        ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
-        ax.legend(loc="best", handlelength=2.6)
+        #ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
+        #ax.legend(loc="best", handlelength=2.6)
 
         plot_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(plot_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
