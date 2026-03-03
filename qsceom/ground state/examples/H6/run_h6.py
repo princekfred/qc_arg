@@ -26,7 +26,7 @@ def _load_adapt_vqe():
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Linear H6 ground-state ADAPT-VQE example (default spacing: 3.0 A)."
+        description="Linear H6 ground-state ADAPT-VQE example (default spacing: 5.0 A)."
     )
     parser.add_argument(
         "--spacing",
