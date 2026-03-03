@@ -331,7 +331,7 @@ for shot in shot_values:
     print(f"shots={int(shot)}: mean={mean:.12f}, variance={variance:.12e}")
 
 
-plot_path = Path(__file__).resolve().with_name("ongoing_nh3_qse_shots_plot.png")
+plot_path = Path(__file__).resolve().with_name("nh3_qse_shots_.png")
 plot_shot_stats(
     shots=shot_values,
     means=means,
@@ -340,7 +340,7 @@ plot_shot_stats(
     plot_path=plot_path,
 )
 
-txt_path = Path(__file__).resolve().with_name("ongoing_nh3_qse_shots.txt")
+txt_path = Path(__file__).resolve().with_name("nh3_qse_shots.txt")
 report_lines = [
     "NH3 QSE Shot Statistics (ongoing_qse)",
     f"HF energy (Ha): {float(mf.e_tot):.12f}",

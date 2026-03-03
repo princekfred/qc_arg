@@ -322,12 +322,12 @@ def main(argv=None):
     output_txt = (
         Path(args.output_txt)
         if args.output_txt is not None
-        else script_dir / "nh3_shots.txt"
+        else script_dir / "nh3_qsceom_shots.txt"
     )
     plot_path = (
         Path(args.plot_file)
         if args.plot_file is not None
-        else script_dir / "nh3_shots.png"
+        else script_dir / "nh3_qsceom_shots_.png"
     )
 
     symbols = list(input_cfg["symbols"])
@@ -433,7 +433,7 @@ def main(argv=None):
             values.append(first_eig)
             times.append(elapsed)
             print(
-                f"  run {run_idx + 1:02d}/{args.runs_per_shot}: "
+                f"run {run_idx + 1:02d}/{args.runs_per_shot}: "
                 f"first_eig={first_eig:.10f}, time={elapsed:.2f}s",
                 flush=True,
             )
