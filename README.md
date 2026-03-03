@@ -16,7 +16,6 @@ Copyright (c) 2025, Prince Kwao
  
 Project based on the 
 [Computational Molecular Science Python Cookiecutter](https://github.com/molssi/cookiecutter-cms) version 1.11.
-# oak
 
 ---
 
@@ -35,7 +34,6 @@ This repo includes runnable examples for H2, H4, H6, N2, and NH3.
 - `qsceom/ground state/`: ADAPT-VQE and MPI QSC-EOM implementations, plus ground-state examples.
 - `qsceom/excited state/`: UCCSD and QSC-EOM excited-state modules and examples.
 - `qse/`: QSE implementation and shot-study scripts (`run_qseshots.py`, `ongoing_qse.py`).
-- `All/`: research notebooks and exploratory runs.
 
 ## Environment
 
