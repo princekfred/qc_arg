@@ -34,6 +34,7 @@ def gs_exact(
     shots: Optional[int] = None,
     max_iter: int = 10000,
     return_energy: bool = False,
+    return_hamiltonian: bool = False,
     stepsize: float = 2.0,
     verbose: bool = True,
 ):
@@ -59,6 +60,8 @@ def gs_exact(
         Maximum gradient-descent iterations.
     return_energy
         If ``True``, return both ``(params, energy)``.
+    return_hamiltonian
+        If ``True``, include ``(hamiltonian, qubits)`` in the returned tuple.
     stepsize
         Gradient-descent stepsize.
     verbose
@@ -117,7 +120,13 @@ def gs_exact(
     ground_energy = circuit(params, wires, s_wires, d_wires, hf_state)
     if verbose:
         #print("Ground state energy:", ground_energy)
+        pass
 
-    #if return_energy:
-        return params, ground_energy
-    return params
+    out = [params]
+    if return_energy:
+        out.append(ground_energy)
+    if return_hamiltonian:
+        out.extend([hamiltonian, qubits])
+    if len(out) == 1:
+        return out[0]
+    return tuple(out)

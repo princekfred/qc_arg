@@ -20,7 +20,7 @@ def adapt_vqe(
     geometry,
     *,
     adapt_it: int,
-    basis: str = "sto-6g",
+    basis: str = "sto-3g",
     charge: int = 0,
     spin: int = 0,
     active_electrons: int,
@@ -37,6 +37,7 @@ def adapt_vqe(
     optimizer_maxiter: int = 100_000_000,
     return_max_gradients: bool = False,
     print_max_gradients: bool = False,
+    return_hamiltonian: bool = False,
 ):
     """Run an ADAPT-style VQE loop for a user-specified molecular geometry.
 
@@ -86,13 +87,15 @@ def adapt_vqe(
         If True, include ADAPT max-gradient values per iteration in the return tuple.
     print_max_gradients
         If True, print the max ADAPT gradient at each ADAPT iteration.
+    return_hamiltonian
+        If True, include the ADAPT Hamiltonian and qubit count in the return tuple.
 
     Returns
     -------
     tuple
-        ``(params, ash_excitation, energies)`` by default, or
-        ``(params, ash_excitation, energies, adapt_gradients)`` if
-        ``return_max_gradients=True``.
+        ``(params, ash_excitation, energies)`` by default.
+        If ``return_max_gradients=True``, include ``adapt_gradients``.
+        If ``return_hamiltonian=True``, include ``(H, qubits)`` at the end.
 
     Raises
     ------
@@ -320,6 +323,9 @@ def adapt_vqe(
 
         energies.append(result.fun)
         params = result.x
+    out = [params, ash_excitation, energies]
     if return_max_gradients:
-        return params, ash_excitation, energies, adapt_gradients
-    return params, ash_excitation, energies
+        out.append(adapt_gradients)
+    if return_hamiltonian:
+        out.extend([H, qubits])
+    return tuple(out)

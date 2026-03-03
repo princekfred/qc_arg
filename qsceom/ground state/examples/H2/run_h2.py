@@ -394,7 +394,7 @@ def main():
     adapt_fidelities = []
     qsceom_fidelities = []
     for adapt_it in args.adapt_it:
-        params, ash_excitation, energies, adapt_gradients = adapt_vqe(
+        params, ash_excitation, energies, adapt_gradients, adapt_hamiltonian, adapt_qubits = adapt_vqe(
             symbols=symbols,
             geometry=geometry,
             adapt_it=adapt_it,
@@ -406,6 +406,7 @@ def main():
             shots=shots,
             optimizer_maxiter=args.optimizer_maxiter,
             return_max_gradients=True,
+            return_hamiltonian=True,
         )
         eigvals, eigvecs = qsc_eom(
             symbols=symbols,
@@ -417,6 +418,8 @@ def main():
             ash_excitation=ash_excitation,
             shots=args.shots,
             basis=args.basis,
+            hamiltonian=adapt_hamiltonian,
+            qubits=adapt_qubits,
         )
 
         adapt_ground = float(energies[-1])

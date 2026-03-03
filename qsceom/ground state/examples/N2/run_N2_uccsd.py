@@ -88,7 +88,7 @@ def uccsd_ground_state_energy(
     optimizer_method,
     optimizer_maxiter,
 ):
-    """Optimize a full UCCSD ansatz and return (params, energy)."""
+    """Optimize a full UCCSD ansatz and return (params, energy, hamiltonian, qubits)."""
     try:
         import numpy as np
         import pennylane as qml
@@ -140,7 +140,7 @@ def uccsd_ground_state_energy(
     )
     theta_opt = np.asarray(result.x, dtype=float)
     energy_opt = objective(theta_opt)
-    return theta_opt, energy_opt
+    return theta_opt, energy_opt, hamiltonian, qubits
 
 
 def plot_results(d_vals, uccsd, qsceom, fci, err_uccsd, err_qsceom, plot_path):
@@ -281,7 +281,7 @@ def main():
             flush=True,
         )
 
-        params, e_uccsd = uccsd_ground_state_energy(
+        params, e_uccsd, uccsd_hamiltonian, uccsd_qubits = uccsd_ground_state_energy(
             symbols=symbols,
             geometry=geometry,
             basis=args.basis,
@@ -302,6 +302,8 @@ def main():
             ash_excitation=None,
             shots=args.shots,
             basis=args.basis,
+            hamiltonian=uccsd_hamiltonian,
+            qubits=uccsd_qubits,
         )
         e_fci = fci_ground_energy(
             symbols=symbols,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run linear H6 ground-state ADAPT-VQE at 3.0 Angstrom spacing by default."""
+"""Run linear H6 ground-state ADAPT-VQE at 5.0 Angstrom spacing by default."""
 
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ def build_parser():
     parser.add_argument(
         "--fci-nroots",
         type=int,
-        default=4,
+        default=6,
         help="Number of FCI roots to compute for the reference section.",
     )
     parser.add_argument(
@@ -369,7 +369,7 @@ def _plot_metrics(
         ax1.set_ylabel("Error from FCI (Ha)")
         ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax1.xaxis.set_minor_locator(AutoMinorLocator())
-     
+
         has_positive = False
         for series in (adapt_errors, qsceom_errors, adapt_max_gradients):
             if any(math.isfinite(float(v)) and float(v) > 0.0 for v in series):
@@ -414,7 +414,7 @@ def _plot_metrics(
                 y,
                 color="#466964",
                 marker="^",
-                linestyle="-",
+                linestyle="--",
                 label="ADAPT max gradient",
             )[0]
             lines.append(line)
@@ -427,7 +427,7 @@ def _plot_metrics(
         plt.close(fig)
 
         fidelity_plot_path = normalized_plot_path.with_name(
-            f"{normalized_plot_path.stem}_fidelity{normalized_plot_path.suffix}"
+            f"{normalized_plot_path.stem}fid{normalized_plot_path.suffix}"
         )
         fidelity_fig, fidelity_ax = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)
         fidelity_ax.set_xlabel("ADAPT iterations")
@@ -436,8 +436,7 @@ def _plot_metrics(
         fidelity_ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         fidelity_ax.xaxis.set_minor_locator(AutoMinorLocator())
         fidelity_ax.yaxis.set_minor_locator(AutoMinorLocator())
-        #fidelity_ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
-        #fidelity_ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
+       
 
         fidelity_lines = []
         x, y = _finite_xy(iterations, adapt_fidelities)
@@ -469,36 +468,6 @@ def _plot_metrics(
 
         _save_publication_figure(fidelity_fig, fidelity_plot_path)
         plt.close(fidelity_fig)
-
-
-def _select_tracked_root(
-    eigvals,
-    eigvecs,
-    previous_root_vec=None,
-    target_energy=None,
-):
-    import numpy as np
-
-    eigvals_arr = np.real_if_close(np.asarray(eigvals))
-    if np.iscomplexobj(eigvals_arr):
-        eigvals_arr = np.real(eigvals_arr)
-    eigvals_arr = np.asarray(eigvals_arr, dtype=float)
-    eigvecs_arr = np.asarray(eigvecs, dtype=complex)
-
-    if previous_root_vec is None:
-        if target_energy is None:
-            root_idx = 0
-        else:
-            root_idx = int(np.argmin(np.abs(eigvals_arr - float(target_energy))))
-    else:
-        overlaps = np.abs(eigvecs_arr.conj().T @ previous_root_vec) ** 2
-        root_idx = int(np.argmax(overlaps))
-
-    tracked_vec = np.asarray(eigvecs_arr[:, root_idx], dtype=complex)
-    norm = np.linalg.norm(tracked_vec)
-    if norm > 0:
-        tracked_vec = tracked_vec / norm
-    return root_idx, eigvals_arr, tracked_vec
 
 
 def main():
@@ -540,9 +509,8 @@ def main():
     adapt_max_gradients = []
     adapt_fidelities = []
     qsceom_fidelities = []
-    tracked_qsceom_vec = None
     for adapt_it in args.adapt_it:
-        params, ash_excitation, energies, adapt_gradients = adapt_vqe(
+        params, ash_excitation, energies, adapt_gradients, adapt_hamiltonian, adapt_qubits = adapt_vqe(
             symbols=symbols,
             geometry=geometry,
             adapt_it=adapt_it,
@@ -554,6 +522,7 @@ def main():
             shots=shots,
             optimizer_maxiter=args.optimizer_maxiter,
             return_max_gradients=True,
+            return_hamiltonian=True,
         )
         eigvals, eigvecs = qsc_eom(
             symbols=symbols,
@@ -565,18 +534,12 @@ def main():
             ash_excitation=ash_excitation,
             shots=args.shots,
             basis=args.basis,
+            hamiltonian=adapt_hamiltonian,
+            qubits=adapt_qubits,
         )
 
         adapt_ground = float(energies[-1])
-        target_energy = fci_ground if fci_ground is not None else adapt_ground
-        tracked_root_idx, eigvals_real, tracked_qsceom_vec = _select_tracked_root(
-            eigvals=eigvals,
-            eigvecs=eigvecs,
-            previous_root_vec=tracked_qsceom_vec,
-            target_energy=target_energy,
-        )
-        qsc_ground = float(eigvals_real[tracked_root_idx])
-        qsc_lowest = float(eigvals_real[0])
+        qsc_ground = float(eigvals[0])
         overlap_fidelity = None
         if overlap_context is not None:
             overlap_fidelity = _compute_adapt_fci_fidelity(
@@ -587,7 +550,7 @@ def main():
             qsceom_overlap_fidelity = _compute_qsceom_fci_fidelity(
                 params=params,
                 ash_excitation=ash_excitation,
-                qsceom_ground_vec=eigvecs[:, tracked_root_idx],
+                qsceom_ground_vec=eigvecs[:, 0],
                 overlap_context=overlap_context,
             )
         else:
@@ -598,9 +561,6 @@ def main():
             f"ADAPT iterations: {adapt_it}",
             f"Adapt gr energy (Ha): {adapt_ground}",
             f"qsceom gr energy (Ha): {qsc_ground}",
-            f"qsceom lowest-root energy (Ha): {qsc_lowest}",
-            f"qsceom tracked root index: {tracked_root_idx}",
-            f"qsceom eigenvalues (Ha): {eigvals_real.tolist()}",
         ]
         if len(adapt_gradients) > 0:
             lines.append(
@@ -653,14 +613,14 @@ def main():
     print(report, end="")
 
     if args.output_file is None:
-        output_path = Path(__file__).resolve().parent / "h6_ground_output.txt"
+        output_path = Path(__file__).resolve().parent / "h6_gr_output.txt"
     else:
         output_path = Path(args.output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(report, encoding="utf-8")
 
     if args.plot_file is None:
-        plot_path = output_path.with_name("h6_error_plot.png")
+        plot_path = output_path.with_name("h6_error_.png")
     else:
         plot_path = Path(args.plot_file)
     _plot_metrics(

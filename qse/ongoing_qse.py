@@ -195,6 +195,7 @@ def plot_shot_stats(shots, means, variances, no_shot_value, plot_path):
     y = np.asarray(means, dtype=float)
     var = np.asarray(variances, dtype=float)
     yerr = np.sqrt(np.clip(var, a_min=0.0, a_max=None))
+    y_delta = y - float(no_shot_value)
 
     style_params = {
         "font.family": "DejaVu Serif",
@@ -226,7 +227,7 @@ def plot_shot_stats(shots, means, variances, no_shot_value, plot_path):
         fig, ax = plt.subplots(figsize=(6.8, 4.2), constrained_layout=True)
         ax.axhline(
             float(no_shot_value),
-            color="blue",
+            color="#1F51B4",
             linestyle="-",
             linewidth=1.8,
             label="QSE (no shots)",
@@ -236,14 +237,15 @@ def plot_shot_stats(shots, means, variances, no_shot_value, plot_path):
             y,
             yerr=yerr,
             fmt="o",
-            color="blue",
-            ecolor="blue",
+            color="#1F51B4",
+            ecolor="#1F51B4",
             elinewidth=1.4,
             capsize=4,
         )
         ax.set_xscale("log")
         ax.set_xlabel("Shot count")
         ax.set_ylabel("Energy (Ha)")
+        ax.set_ylim(-56.4, -55.6)
         ax.set_xticks(x)
         shot_labels = []
         for v in x:
@@ -261,6 +263,36 @@ def plot_shot_stats(shots, means, variances, no_shot_value, plot_path):
         plot_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(plot_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
         plt.close(fig)
+
+        error_plot_path = plot_path.with_name(
+            f"{plot_path.stem}_error{plot_path.suffix}"
+        )
+        fig_err, ax_err = plt.subplots(figsize=(6.8, 4.2), constrained_layout=True)
+        ax_err.axhline(
+            0.0,
+            color="#1f1f1f",
+            linestyle="-",
+            linewidth=1.8,
+        )
+        ax_err.errorbar(
+            x,
+            y_delta,
+            yerr=yerr,
+            fmt="o",
+            color="#1F51B4",
+            ecolor="#1F51B4",
+            elinewidth=1.4,
+            capsize=4,
+        )
+        ax_err.set_xscale("log")
+        ax_err.set_xlabel("Shot count")
+        ax_err.set_ylabel("Error (Ha)")
+        ax_err.set_xticks(x)
+        ax_err.set_xticklabels(shot_labels)
+        fig_err.savefig(error_plot_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
+        plt.close(fig_err)
+
+    return error_plot_path
 
 
 num_runs = 10
@@ -332,7 +364,7 @@ for shot in shot_values:
 
 
 plot_path = Path(__file__).resolve().with_name("nh3_qse_shots_.png")
-plot_shot_stats(
+error_plot_path = plot_shot_stats(
     shots=shot_values,
     means=means,
     variances=variances,
@@ -355,7 +387,15 @@ for shot, values, mean, variance in shot_records:
         f"shots={shot}: mean={mean:.12f}, variance={variance:.12e}"
     )
     report_lines.append(f"  first_eig_values: {values}")
-report_lines.extend(["", f"Plot file: {plot_path}", ""])
+report_lines.extend(
+    [
+        "",
+        f"Plot file: {plot_path}",
+        f"Error plot file: {error_plot_path}",
+        "",
+    ]
+)
 txt_path.write_text("\n".join(report_lines), encoding="utf-8")
 print(f"Wrote stats TXT: {txt_path}")
 print(f"Wrote plot: {plot_path}")
+print(f"Wrote error plot: {error_plot_path}")

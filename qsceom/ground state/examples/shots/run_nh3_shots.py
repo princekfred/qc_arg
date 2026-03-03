@@ -232,6 +232,7 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
     y = np.asarray(means, dtype=float)
     var = np.asarray(variances, dtype=float)
     yerr = np.sqrt(np.clip(var, a_min=0.0, a_max=None))
+    y_delta = y - float(no_shot_value)
     
     style_params = {
         "font.family": "DejaVu Serif",
@@ -294,13 +295,46 @@ def _plot_stats(shots, means, variances, no_shot_value, plot_path):
         ax.set_xticklabels(shot_labels)
         ax.set_xlabel("Shot count")
         ax.set_ylabel("Energy(Ha)")
-        ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
+        ax.set_ylim(-56.2, -55.4)
+        #ax.grid(True, which="major", alpha=0.25, linewidth=0.6)
         #ax.grid(True, which="minor", alpha=0.12, linewidth=0.4)
         #ax.legend(loc="best", handlelength=2.6)
 
         plot_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(plot_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
         plt.close(fig)
+
+        error_plot_path = plot_path.with_name(
+            f"{plot_path.stem}_error{plot_path.suffix}"
+        )
+        fig_err, ax_err = plt.subplots(figsize=(6.6, 4.0), constrained_layout=True)
+        ax_err.axhline(
+            0.0,
+            color="#1f1f1f",
+            linestyle="-",
+            linewidth=1.6,
+        )
+        ax_err.errorbar(
+            x,
+            y_delta,
+            yerr=yerr,
+            fmt="o",
+            color="#b30000",
+            ecolor="#b30000",
+            capsize=4,
+            elinewidth=1.4,
+            markersize=7,
+        )
+        ax_err.set_xscale("log")
+        ax_err.set_xticks(x)
+        ax_err.set_xticklabels(shot_labels)
+        ax_err.set_xlabel("Shot count")
+        ax_err.set_ylabel("Error (Ha)")
+       
+        fig_err.savefig(error_plot_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
+        plt.close(fig_err)
+
+    return error_plot_path
 
 
 def main(argv=None):
@@ -353,7 +387,7 @@ def main(argv=None):
     if ground_method == "adapt":
         print("Running ADAPT-VQE once (analytic mode)...", flush=True)
         t0 = time.time()
-        params, ash_excitation, energies = adapt_vqe(
+        params, ash_excitation, energies, ground_hamiltonian, ground_qubits = adapt_vqe(
             symbols=symbols,
             geometry=geometry,
             adapt_it=args.adapt_it,
@@ -364,6 +398,7 @@ def main(argv=None):
             active_orbitals=args.active_orbitals,
             shots=adapt_shots,
             optimizer_maxiter=args.optimizer_maxiter,
+            return_hamiltonian=True,
         )
         ground_time_s = time.time() - t0
         ground_energy = float(np.asarray(energies, dtype=float)[-1])
@@ -381,9 +416,19 @@ def main(argv=None):
             shots=uccsd_shots,
             max_iter=args.optimizer_maxiter,
             return_energy=True,
+            return_hamiltonian=True,
         )
         ground_time_s = time.time() - t0
-        if isinstance(gs_out, tuple) and len(gs_out) >= 2:
+        ground_hamiltonian = None
+        ground_qubits = None
+        if isinstance(gs_out, tuple) and len(gs_out) >= 4:
+            params, ground_energy, ground_hamiltonian, ground_qubits = (
+                gs_out[0],
+                gs_out[1],
+                gs_out[2],
+                gs_out[3],
+            )
+        elif isinstance(gs_out, tuple) and len(gs_out) >= 2:
             params, ground_energy = gs_out[0], gs_out[1]
         else:
             params = gs_out
@@ -403,6 +448,8 @@ def main(argv=None):
         ash_excitation=ash_excitation,
         shots=0,
         basis=args.basis,
+        hamiltonian=ground_hamiltonian,
+        qubits=ground_qubits,
     )
     baseline_time_s = time.time() - t0
     baseline_first = float(np.asarray(eigvals_baseline, dtype=float)[0])
@@ -427,6 +474,8 @@ def main(argv=None):
                 ash_excitation=ash_excitation,
                 shots=shot,
                 basis=args.basis,
+                hamiltonian=ground_hamiltonian,
+                qubits=ground_qubits,
             )
             elapsed = time.time() - run_start
             first_eig = float(np.asarray(eigvals, dtype=float)[0])
@@ -453,7 +502,7 @@ def main(argv=None):
 
     means = [entry["mean_first_eig"] for entry in shot_results]
     variances = [entry["variance_first_eig"] for entry in shot_results]
-    _plot_stats(
+    error_plot_path = _plot_stats(
         shots=qsceom_shots,
         means=means,
         variances=variances,
@@ -528,6 +577,7 @@ def main(argv=None):
         [
             "",
             f"Plot file: {plot_path}",
+            f"Error plot file: {error_plot_path}",
             "",
         ]
     )
@@ -550,6 +600,7 @@ def main(argv=None):
         )
     print(f"\nWrote stats TXT: {output_txt}", flush=True)
     print(f"Wrote plot: {plot_path}", flush=True)
+    print(f"Wrote error plot: {error_plot_path}", flush=True)
 
 
 if __name__ == "__main__":

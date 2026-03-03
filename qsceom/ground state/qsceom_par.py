@@ -8,7 +8,7 @@ from typing import Optional, Sequence
 
 try:
     from mpi4py import MPI as _MPI
-except ImportError:  # pragma: no cover
+except ImportError:  
     _MPI = None
 
 qml = None
@@ -23,7 +23,7 @@ def _require_quantum_deps():
     try:
         import pennylane as _qml
         from pennylane import numpy as _np
-    except ImportError as exc:  # pragma: no cover
+    except ImportError as exc:  
         raise ImportError(
             "qsc_eom requires PennyLane and a quantum chemistry backend. "
             "Install with: `pip install pennylane pyscf` "
@@ -119,6 +119,8 @@ def qsc_eom(
     ash_excitation=None,
     shots: int = 0,
     basis: str = "sto-3g",
+    hamiltonian=None,
+    qubits: Optional[int] = None,
 ):
     """Build and diagonalize the QSC-EOM M-matrix.
 
@@ -132,28 +134,27 @@ def qsc_eom(
     inite = _load_inite()
     norm_shots = _normalize_shots(shots)
     params = np.asarray(params)
-    coordinates = np.asarray(coordinates, dtype=float)
-
-    if coordinates.ndim != 2 or coordinates.shape[1] != 3:
-        raise ValueError("coordinates must have shape (n_atoms, 3)")
-    if len(symbols) != coordinates.shape[0]:
-        raise ValueError("len(symbols) must match number of coordinate rows")
 
     if params.ndim != 1:
         raise ValueError("params must be a 1D array-like")
     if ash_excitation is not None and len(ash_excitation) != len(params):
         raise ValueError("len(ash_excitation) must match len(params)")
 
-    hamiltonian, qubits = qml.qchem.molecular_hamiltonian(
-        symbols,
-        coordinates,
-        basis=basis,
-        method="pyscf",
-        active_electrons=active_electrons,
-        active_orbitals=active_orbitals,
-        charge=charge,
-        unit="angstrom",
-    )
+    if hamiltonian is None:
+        raise ValueError(
+            "qsc_eom requires hamiltonian from the chosen ground-state method "
+            "(AdaptVQE or UCCSD)."
+        )
+    if qubits is None:
+        try:
+            qubits = len(hamiltonian.wires)
+        except Exception as exc:
+            raise ValueError(
+                "qubits must be provided when using an external hamiltonian"
+            ) from exc
+    qubits = int(qubits)
+    if qubits <= 0:
+        raise ValueError("qubits must be > 0")
     singles, doubles = qml.qchem.excitations(active_electrons, qubits)
     s_wires, d_wires = qml.qchem.excitations_to_wires(singles, doubles)
     wires = range(qubits)
@@ -164,16 +165,16 @@ def qsc_eom(
     dev = _make_device(qubits, norm_shots)
 
     @qml.qnode(dev)
-    #def circuit_d(params, occ, wires, hf_state, ash_excitation):
-    def circuit_d(params, occ, wires, s_wires, d_wires, hf_state):
+    def circuit_d(params, occ, wires, hf_state, ash_excitation):
+    #def circuit_d(params, occ, wires, s_wires, d_wires, hf_state):
         for w in occ:
             qml.X(wires=w)
         _apply_ansatz(params, wires, s_wires, d_wires, hf_state, ash_excitation)
         return qml.expval(hamiltonian)
 
     @qml.qnode(dev)
-    #def circuit_od(params, occ1, occ2, wires, hf_state, ash_excitation):
-    def circuit_od(params, occ1, occ2,wires, s_wires, d_wires, hf_state):
+    def circuit_od(params, occ1, occ2, wires, hf_state, ash_excitation):
+    #def circuit_od(params, occ1, occ2,wires, s_wires, d_wires, hf_state):
         for w in occ1:
             qml.X(wires=w)
 
@@ -201,8 +202,8 @@ def qsc_eom(
 
     m_diag_local = np.zeros(mat_size)
     for i in range(rank, mat_size, size):
-        #m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, null_state, ash_excitation)
-        m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, s_wires, d_wires, null_state)
+        m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, null_state, ash_excitation)
+        #m_diag_local[i] = circuit_d(params, excitation_configs[i], wires, s_wires, d_wires, null_state)
 
     if comm is None:
         m_diag = m_diag_local
@@ -219,8 +220,8 @@ def qsc_eom(
                     m_tmp = m_diag[i]
                 else:
                     m_tmp = (
-                        #circuit_od(params, excitation_configs[i], excitation_configs[j], wires, null_state, ash_excitation)
-                        circuit_od(params, excitation_configs[i], excitation_configs[j], wires, s_wires, d_wires, null_state)
+                        circuit_od(params, excitation_configs[i], excitation_configs[j], wires, null_state, ash_excitation)
+                        #circuit_od(params, excitation_configs[i], excitation_configs[j], wires, s_wires, d_wires, null_state)
                         - m_diag[i] / 2.0
                         - m_diag[j] / 2.0
                     )

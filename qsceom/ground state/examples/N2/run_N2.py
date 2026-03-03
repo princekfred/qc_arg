@@ -216,7 +216,7 @@ def main():
             flush=True,
         )
 
-        params, ash_excitation, energies = adapt_vqe(
+        params, ash_excitation, energies, adapt_hamiltonian, adapt_qubits = adapt_vqe(
             symbols=symbols,
             geometry=geometry,
             adapt_it=int(args.adapt_it),
@@ -227,6 +227,7 @@ def main():
             active_orbitals=args.active_orbitals,
             shots=adapt_shots,
             optimizer_maxiter=args.optimizer_maxiter,
+            return_hamiltonian=True,
         )
         eigvals, _ = qsc_eom(
             symbols=symbols,
@@ -238,6 +239,8 @@ def main():
             ash_excitation=ash_excitation,
             shots=args.shots,
             basis=args.basis,
+            hamiltonian=adapt_hamiltonian,
+            qubits=adapt_qubits,
         )
         e_fci = fci_ground_energy(
             symbols=symbols,

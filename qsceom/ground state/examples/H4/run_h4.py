@@ -429,7 +429,7 @@ def _plot_metrics(
         plt.close(fig)
 
         fidelity_plot_path = normalized_plot_path.with_name(
-            f"{normalized_plot_path.stem}_fidelity{normalized_plot_path.suffix}"
+            f"{normalized_plot_path.stem}fid{normalized_plot_path.suffix}"
         )
         fidelity_fig, fidelity_ax = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)
         fidelity_ax.set_xlabel("ADAPT iterations")
@@ -513,7 +513,7 @@ def main():
     adapt_fidelities = []
     qsceom_fidelities = []
     for adapt_it in args.adapt_it:
-        params, ash_excitation, energies, adapt_gradients = adapt_vqe(
+        params, ash_excitation, energies, adapt_gradients, adapt_hamiltonian, adapt_qubits = adapt_vqe(
             symbols=symbols,
             geometry=geometry,
             adapt_it=adapt_it,
@@ -525,6 +525,7 @@ def main():
             shots=shots,
             optimizer_maxiter=args.optimizer_maxiter,
             return_max_gradients=True,
+            return_hamiltonian=True,
         )
         eigvals, eigvecs = qsc_eom(
             symbols=symbols,
@@ -536,6 +537,8 @@ def main():
             ash_excitation=ash_excitation,
             shots=args.shots,
             basis=args.basis,
+            hamiltonian=adapt_hamiltonian,
+            qubits=adapt_qubits,
         )
 
         adapt_ground = float(energies[-1])
@@ -613,14 +616,14 @@ def main():
     print(report, end="")
 
     if args.output_file is None:
-        output_path = Path(__file__).resolve().parent / "h4_ground_output.txt"
+        output_path = Path(__file__).resolve().parent / "h4_gr_output.txt"
     else:
         output_path = Path(args.output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(report, encoding="utf-8")
 
     if args.plot_file is None:
-        plot_path = output_path.with_name("h4_error_plot.png")
+        plot_path = output_path.with_name("h4_error_.png")
     else:
         plot_path = Path(args.plot_file)
     _plot_metrics(

@@ -1,0 +1,40 @@
+NH3 QSC-EOM First-Eigenvalue Shot Statistics
+
+Input:
+  symbols: ['N', 'H', 'H', 'H']
+  geometry (angstrom): [[ 0.          0.          0.        ]
+ [ 2.52631579  0.          0.        ]
+ [-0.506       0.876       0.        ]
+ [-0.506      -0.876       0.        ]]
+  basis: sto-6g
+  charge: 0
+  spin (2S): 0
+  hf_energy_hartree: -55.563866445499
+  ground_method: uccsd
+  active_electrons: 4
+  active_orbitals: 4
+  qsceom_shots: [500, 1000, 10000]
+  runs_per_shot: 10
+
+  adapt_it: n/a
+  uccsd_shots: 0 (forced analytic)
+Ground state:
+  runtime_s: 60.666727
+  num_params: 26
+  num_excitations: full UCCSD pool
+  ground_energy_hartree: -55.822612922120
+
+No-shot QSC-EOM baseline:
+  runtime_s: 43.436019
+  first_eig: -55.824163875084
+
+Finite-shot statistics (first eigenvalue):
+  shots=500: mean=-55.904617520139, variance=7.271738112916e-04, stddev=2.696616048479e-02, mean_runtime_s=75.731173
+    qsceom gr energies: [-55.86472035732058, -55.90112617852672, -55.95245432952242, -55.90101549024562, -55.8818818122474, -55.927981605454924, -55.905594620718674, -55.93548511703615, -55.882143613378595, -55.89377207693609]
+  shots=1000: mean=-55.859547089102, variance=1.951634206657e-04, stddev=1.397009021681e-02, mean_runtime_s=79.875375
+    qsceom gr energies: [-55.827836325813166, -55.860949825555394, -55.86348723850634, -55.8745046169843, -55.847555038197356, -55.86547689227586, -55.86494140581764, -55.854543273454276, -55.86000511455873, -55.87617115986192]
+  shots=10000: mean=-55.832205039148, variance=1.430491996437e-05, stddev=3.782184549221e-03, mean_runtime_s=100.764936
+    qsceom gr energies: [-55.829447069312664, -55.8333915989657, -55.837381263853956, -55.82837339831868, -55.83477226268769, -55.8342622401977, -55.83154789341297, -55.83545233475919, -55.824708579026534, -55.83271375094888]
+
+Plot file: /Users/prince.kwao/Desktop/qc_arg/qsceom/ground state/examples/shots/nh3_qsceom_shots_.png
+Error plot file: /Users/prince.kwao/Desktop/qc_arg/qsceom/ground state/examples/shots/nh3_qsceom_shots__error.png
