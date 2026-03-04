@@ -437,7 +437,7 @@ def _plot_metrics(
         plt.close(fig)
 
         fidelity_plot_path = normalized_plot_path.with_name(
-            f"{normalized_plot_path.stem}fid{normalized_plot_path.suffix}"
+            f"h4_fid_.png"
         )
         fidelity_fig, fidelity_ax = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)
         fidelity_ax.set_xlabel("ADAPT iterations")
