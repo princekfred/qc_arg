@@ -373,12 +373,20 @@ def _plot_metrics(
         #ax1.grid(True, which="minor", alpha=0.12, linewidth=0.4)
 
         has_positive = False
-        for series in (adapt_errors, qsceom_errors, adapt_max_gradients):
+        for series in (adapt_errors, qsceom_errors):
             if any(math.isfinite(float(v)) and float(v) > 0.0 for v in series):
                 has_positive = True
                 break
         if has_positive:
             ax1.set_yscale("log")
+
+        ax2 = ax1.twinx()
+        ax2.set_ylabel("ADAPT max gradient")
+        has_positive_grad = any(
+            math.isfinite(float(v)) and float(v) > 0.0 for v in adapt_max_gradients
+        )
+        if has_positive_grad:
+            ax2.set_yscale("log")
 
         lines = []
         labels = []
@@ -409,9 +417,9 @@ def _plot_metrics(
             lines.append(line)
             labels.append(line.get_label())
 
-        x, y = _finite_xy(iterations, adapt_max_gradients, positive_only=has_positive)
+        x, y = _finite_xy(iterations, adapt_max_gradients, positive_only=has_positive_grad)
         if y:
-            line = ax1.plot(
+            line = ax2.plot(
                 x,
                 y,
                 color="#466964",

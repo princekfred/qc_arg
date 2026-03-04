@@ -18,6 +18,24 @@ from pathlib import Path
 _FLOAT_RE = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
 
 
+def _resolve_input_file(path: Path, script_dir: Path) -> Path:
+    if path.is_file():
+        return path
+
+    candidates = [
+        Path.cwd() / path,
+        script_dir / path,
+        script_dir / path.name,
+        script_dir.parent / path.name,
+        script_dir.parent / "qsceom/ground state/examples/shots" / path.name,
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+
+    return path
+
+
 def _parse_shot_means(text: str) -> dict[int, float]:
     means: dict[int, float] = {}
     pattern = re.compile(rf"shots\s*=\s*(\d+)\s*:\s*mean\s*=\s*({_FLOAT_RE})")
@@ -166,7 +184,7 @@ def plot_errors(
         ax.set_xlabel("Shot count")
         ax.set_ylabel("Error (Ha)")
         ax.legend(loc="best", handlelength=2.6)
-
+        ax.set_ylim(-0.8, 0.05)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(output_path, dpi=600, bbox_inches="tight", pad_inches=0.02)
         plt.close(fig)
@@ -182,28 +200,33 @@ def main() -> None:
     parser.add_argument(
         "--nh3-file",
         type=Path,
-        default=Path(__file__).resolve().with_name("nh3_qse_shots.txt"),
+        default=Path("nh3_qse_shots.txt"),
         help="Path to NH3 QSE shot report text file.",
     )
     parser.add_argument(
         "--nh3qsceom-file",
         type=Path,
-        default=Path(
-            "qsceom/ground state/examples/shots/nh3_qsceom_shots.txt"
-        ),
+        default=Path("nh3_qsceom_shots.txt"),
         help="Path to NH3 QSC-EOM shot report text file.",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path(__file__).resolve().with_name("nh3_shots_error_plot.png"),
+        default=Path(__file__).resolve().with_name("nh3_shots_error_.png"),
         help="Output image path for combined error plot.",
     )
     args = parser.parse_args()
 
+    script_dir = Path(__file__).resolve().parent
+    nh3_file = _resolve_input_file(args.nh3_file, script_dir)
+    nh3qsceom_file = _resolve_input_file(args.nh3qsceom_file, script_dir)
+    if not nh3_file.is_file():
+        raise FileNotFoundError(f"NH3 report not found: {nh3_file}")
+    if not nh3qsceom_file.is_file():
+        raise FileNotFoundError(f"NH3 QSC-EOM report not found: {nh3qsceom_file}")
 
-    nh3_errors, nh3_ref, nh3_variances = parse_report_errors(args.nh3_file)
-    nh3qsceom_errors, nh3qsceom_ref, nh3qsceom_variances = parse_report_errors(args.nh3qsceom_file)
+    nh3_errors, nh3_ref, nh3_variances = parse_report_errors(nh3_file)
+    nh3qsceom_errors, nh3qsceom_ref, nh3qsceom_variances = parse_report_errors(nh3qsceom_file)
     plot_errors(
         nh3_errors=nh3_errors,
         nh3_variances=nh3_variances,
