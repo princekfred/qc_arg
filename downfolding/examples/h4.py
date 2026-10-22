@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the linear H4 ground-state ADAPT-VQE example."""
+"""Run the H4 ADAPT-VQE example with square or linear geometry."""
 
 from __future__ import annotations
 
@@ -24,15 +24,35 @@ def _load_adapt_vqe():
     return adapt_vqe, qsc_eom
 
 
+def _build_h4_molecule(bond_length, arrangement):
+    symbols = ["H", "H", "H", "H"]
+    if arrangement == "square":
+        geometry = [
+            [0.0, 0.0, 0.0],
+            [bond_length, 0.0, 0.0],
+            [bond_length, bond_length, 0.0],
+            [0.0, bond_length, 0.0],
+        ]
+    else:
+        geometry = [[0.0, 0.0, index * bond_length] for index in range(len(symbols))]
+    return symbols, geometry
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Linear H4 ground-state ADAPT-VQE example."
+        description="H4 ADAPT-VQE example."
     )
     parser.add_argument(
-        "--spacing",
+        "--bond_length",
         type=float,
-        default=3.0,
-        help="H-H spacing in Angstrom for linear H4.",
+        default=1.5,
+        help="H-H bond_length in Angstrom (square side length or linear separation).",
+    )
+    parser.add_argument(
+        "--geometry",
+        choices=("square", "linear"),
+        default="square",
+        help="H4 arrangement (default: square).",
     )
     parser.add_argument(
         "--basis",
@@ -44,7 +64,7 @@ def build_parser():
         "--adapt-it",
         type=int,
         nargs="+",
-        default=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        default=[4],
         help="One or more ADAPT iteration counts to run (e.g. --adapt-it 2 3 4).",
     )
     parser.add_argument(
@@ -106,12 +126,6 @@ def build_parser():
 def parse_args(argv=None):
     parser = build_parser()
     return parser.parse_args(argv)
-
-
-def _build_h4_molecule(spacing):
-    symbols = ["H", "H", "H", "H"]
-    geometry = [[0.0, 0.0, index * spacing] for index in range(len(symbols))]
-    return symbols, geometry
 
 
 def _compute_fci(symbols, geometry, basis, charge, spin, nroots):
@@ -206,8 +220,9 @@ def main():
     adapt_vqe, qsc_eom = _load_adapt_vqe()
 
     basis = args.basis
-    spacing = args.spacing
-    symbols, geometry = _build_h4_molecule(spacing)
+    bond_length = args.bond_length
+    arrangement = args.geometry
+    symbols, geometry = _build_h4_molecule(bond_length, arrangement)
 
     fci_energies = None
     if not args.skip_fci:
@@ -228,9 +243,9 @@ def main():
         else "FCI: skipped"
     )
     reports = [
-        "# H4 Energy Report",
+        f"# H4 Energy Report — {arrangement.title()} geometry",
         (
-            f"Spacing: {spacing:g} Angstrom | Basis: {basis} | "
+            f"Bond length: {bond_length:g} Angstrom | Basis: {basis} | "
             f"Active space: {args.active_electrons}e/{args.active_orbitals}o"
         ),
         (
