@@ -1,0 +1,13 @@
+# H2 Energy Report
+Bond: 0.735 Angstrom | Basis: sto-3g | Active space: 2e/2o
+Charge: 0 | Spin (2S): 0 | ADAPT iterations: 4 | FCI roots: 4 | FCI ground: -1.1373060358 Ha
+
+### ADAPT iteration 4
+ADAPT ground: -1.1373060358 Ha | QSC-EOM ground: -1.1373060358 Ha
++-----------------+---------------+---------------+
+|      State      |  QSC-EOM (Ha) |    FCI (Ha)   |
++-----------------+---------------+---------------+
+| Excited state 1 | -0.5246155554 | -0.5246155554 |
+| Excited state 2 | -0.1627531558 | -0.1627531558 |
+| Excited state 3 |  0.4950577416 |  0.4950577416 |
++-----------------+---------------+---------------+

@@ -10,16 +10,16 @@ from pathlib import Path
 
 def _load_adapt_vqe():
     script_path = Path(__file__).resolve()
-    ground_state_dir = script_path.parents[2]
-    if str(ground_state_dir) not in sys.path:
-        sys.path.insert(0, str(ground_state_dir))
+    downfolding_dir = script_path.parents[1]
+    if str(downfolding_dir) not in sys.path:
+        sys.path.insert(0, str(downfolding_dir))
 
     try:
         from adaptvqe import adapt_vqe
         from qsceom_par import qsc_eom
     except ModuleNotFoundError as exc:
         raise ImportError(
-            "Could not import ground-state modules from qsceom/ground state."
+            f"Could not import ADAPT-VQE/QSC-EOM modules from {downfolding_dir}."
         ) from exc
     return adapt_vqe, qsc_eom
 

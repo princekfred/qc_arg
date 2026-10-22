@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run H2 ground-state ADAPT-VQE at 0.735 Angstrom by default."""
+"""Run the H2 ground-state ADAPT-VQE example."""
 
 from __future__ import annotations
 
@@ -10,23 +10,27 @@ from pathlib import Path
 
 def _load_adapt_vqe():
     script_path = Path(__file__).resolve()
-    ground_state_dir = script_path.parents[2]
-    if str(ground_state_dir) not in sys.path:
-        sys.path.insert(0, str(ground_state_dir))
+    downfolding_dir = script_path.parents[1]
+    if str(downfolding_dir) not in sys.path:
+        sys.path.insert(0, str(downfolding_dir))
 
     try:
         from adaptvqe import adapt_vqe
         from qsceom_par import qsc_eom
     except ModuleNotFoundError as exc:
         raise ImportError(
-            "Could not import ground-state modules from qsceom/ground state."
+            f"Could not import ADAPT-VQE/QSC-EOM modules from {downfolding_dir}."
         ) from exc
     return adapt_vqe, qsc_eom
 
+def _build_h2_molecule(bond_length):
+    symbols = ["H", "H"]
+    geometry = [[0.0, 0.0, 0.0], [0.0, 0.0, bond_length]]
+    return symbols, geometry
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="H2 ground-state ADAPT-VQE example (default bond length: 0.735 A)."
+        description="H2 ground-state ADAPT-VQE example."
     )
     parser.add_argument(
         "--bond-length",
@@ -44,7 +48,7 @@ def build_parser():
         "--adapt-it",
         type=int,
         nargs="+",
-        default=[2, 3, 4],
+        default=[4],
         help="One or more ADAPT iteration counts to run (e.g. --adapt-it 2 3 4).",
     )
     parser.add_argument(
@@ -100,12 +104,6 @@ def build_parser():
         default=None,
         help="Optional output report file path.",
     )
-    parser.add_argument(
-        "--plot-file",
-        type=str,
-        default=None,
-        help="Optional metrics plot image path (default: h2_error_plot.png).",
-    )
     return parser
 
 
@@ -152,64 +150,51 @@ def _compute_fci(symbols, geometry, basis, charge, spin, nroots):
     return energies
 
 
-def _plot_metrics(
-    iterations,
-    adapt_errors,
-    qsceom_errors,
-    adapt_max_gradients,
-    plot_path,
-):
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError(
-            "Plotting requires matplotlib. Install with: `pip install matplotlib`."
-        ) from exc
+def _format_excited_state_table(qsceom_states, fci_states):
+    headers = ["State", "QSC-EOM (Ha)", "FCI (Ha)"]
+    state_count = max(len(qsceom_states), len(fci_states))
+    rows = []
+    for state_offset in range(state_count):
+        qsceom_energy = (
+            f"{qsceom_states[state_offset]:.10f}"
+            if state_offset < len(qsceom_states)
+            else "N/A"
+        )
+        fci_energy = (
+            f"{fci_states[state_offset]:.10f}"
+            if state_offset < len(fci_states)
+            else "N/A"
+        )
+        rows.append([f"Excited state {state_offset + 1}", qsceom_energy, fci_energy])
 
-    def _finite_xy(xs, ys):
-        x_out = []
-        y_out = []
-        for x, y in zip(xs, ys):
-            if y == y:  # NaN-safe finite check for this use case.
-                x_out.append(x)
-                y_out.append(y)
-        return x_out, y_out
+    widths = [
+        max(len(headers[column]), *(len(row[column]) for row in rows))
+        if rows
+        else len(headers[column])
+        for column in range(len(headers))
+    ]
 
-    fig, ax = plt.subplots(figsize=(9, 5))
-    ax.set_title("H2 ADAPT/QSC-EOM Metrics vs ADAPT Iteration")
-    ax.set_xlabel("ADAPT iterations")
-    ax.set_ylabel("Error / Gradient (Hartree)")
-    ax.set_yscale("log")
-    ax.grid(True, which="both", alpha=0.25)
+    def border(left, junction, right):
+        return left + junction.join("-" * (width + 2) for width in widths) + right
 
-    lines = []
-    labels = []
+    def format_row(cells, header=False):
+        formatted = []
+        for column, cell in enumerate(cells):
+            if header:
+                formatted.append(cell.center(widths[column]))
+            elif column == 0:
+                formatted.append(cell.ljust(widths[column]))
+            else:
+                formatted.append(cell.rjust(widths[column]))
+        return "| " + " | ".join(formatted) + " |"
 
-    x, y = _finite_xy(iterations, adapt_errors)
-    if y:
-        ln = ax.plot(x, y, marker="o", label="ADAPT gr error")[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
-
-    x, y = _finite_xy(iterations, qsceom_errors)
-    if y:
-        ln = ax.plot(x, y, marker="o", label="qsceom gr error")[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
-
-    x, y = _finite_xy(iterations, adapt_max_gradients)
-    if y:
-        ln = ax.plot(x, y, marker="^", label="ADAPT max gradient")[0]
-        lines.append(ln)
-        labels.append(ln.get_label())
-
-    if lines:
-        ax.legend(lines, labels, loc="best")
-
-    fig.tight_layout()
-    plot_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(plot_path, dpi=300)
-    plt.close(fig)
+    return [
+        border("+", "+", "+"),
+        format_row(headers, header=True),
+        border("+", "+", "+"),
+        *(format_row(row) for row in rows),
+        border("+", "+", "+"),
+    ]
 
 
 def main():
@@ -218,41 +203,53 @@ def main():
         raise ValueError("--fci-nroots must be > 0")
     adapt_vqe, qsc_eom = _load_adapt_vqe()
 
-    symbols = ["H", "H"]
-    geometry = [[0.0, 0.0, 0.0], [0.0, 0.0, args.bond_length]]
+    basis = args.basis
+    bond_length = args.bond_length
+    symbols, geometry = _build_h2_molecule(bond_length)
 
     fci_energies = None
-    fci_ground = None
     if not args.skip_fci:
         fci_energies = _compute_fci(
             symbols=symbols,
             geometry=geometry,
-            basis=args.basis,
+            basis=basis,
             charge=args.charge,
             spin=args.spin,
             nroots=args.fci_nroots,
         )
-        fci_ground = float(fci_energies[0])
 
     shots = None if args.shots == 0 else args.shots
-    reports = ["===== H2 Ground-State ADAPT-VQE ====="]
-    iterations = []
-    adapt_errors = []
-    qsceom_errors = []
-    adapt_max_gradients = []
+    fci_summary = (
+        f"FCI roots: {args.fci_nroots} | "
+        f"FCI ground: {float(fci_energies[0]):.10f} Ha"
+        if fci_energies is not None
+        else "FCI: skipped"
+    )
+    reports = [
+        "# H2 Energy Report",
+        (
+            f"Bond: {bond_length:g} Angstrom | Basis: {basis} | "
+            f"Active space: {args.active_electrons}e/{args.active_orbitals}o"
+        ),
+        (
+            f"Charge: {args.charge} | Spin (2S): {args.spin} | "
+            f"ADAPT iterations: {', '.join(str(value) for value in args.adapt_it)} | "
+            f"{fci_summary}"
+        ),
+        "",
+    ]
     for adapt_it in args.adapt_it:
-        params, ash_excitation, energies, adapt_gradients, adapt_hamiltonian, adapt_qubits = adapt_vqe(
+        params, ash_excitation, energies, adapt_hamiltonian, adapt_qubits = adapt_vqe(
             symbols=symbols,
             geometry=geometry,
             adapt_it=adapt_it,
-            basis=args.basis,
+            basis=basis,
             charge=args.charge,
             spin=args.spin,
             active_electrons=args.active_electrons,
             active_orbitals=args.active_orbitals,
             shots=shots,
             optimizer_maxiter=args.optimizer_maxiter,
-            return_max_gradients=True,
             return_hamiltonian=True,
         )
         eigvals, _ = qsc_eom(
@@ -264,85 +261,40 @@ def main():
             params=params,
             ash_excitation=ash_excitation,
             shots=args.shots,
-            basis=args.basis,
+            basis=basis,
             hamiltonian=adapt_hamiltonian,
             qubits=adapt_qubits,
         )
 
         adapt_ground = float(energies[-1])
         qsc_ground = float(eigvals[0])
-        lines = [
-            f"Bond length (Angstrom): {args.bond_length}",
-            f"Basis: {args.basis}",
-            f"ADAPT iterations: {adapt_it}",
-            f"Adapt gr energy (Hartree): {adapt_ground}",
-            f"qsceom gr energy (Hartree): {qsc_ground}",
-        ]
-        lines.extend(
-            f"qsceom excited state {state_idx} energy (Hartree): {float(state_energy)}"
-            for state_idx, state_energy in enumerate(eigvals[1:], start=1)
+        qsceom_states = [float(state_energy) for state_energy in eigvals[1:]]
+        fci_states = (
+            [float(state_energy) for state_energy in fci_energies[1:]]
+            if fci_energies is not None
+            else []
         )
-        if len(adapt_gradients) > 0:
-            lines.append(
-                f"ADAPT max gradient: {adapt_gradients[-1]}"
-            )
-            adapt_max_gradients.append(float(adapt_gradients[-1]))
-        else:
-            adapt_max_gradients.append(float("nan"))
-        if fci_ground is not None:
-            adapt_err = abs(adapt_ground - fci_ground)
-            qsceom_err = abs(qsc_ground - fci_ground)
-            lines.extend(
-                [
-                    f"ADAPT gr error (Hartree): {adapt_err}",
-                    f"qsceom gr error (Hartree): {qsceom_err}",
-                ]
-            )
-            adapt_errors.append(float(adapt_err))
-            qsceom_errors.append(float(qsceom_err))
-        else:
-            adapt_errors.append(float("nan"))
-            qsceom_errors.append(float("nan"))
-        iterations.append(int(adapt_it))
-        reports.append("\n".join(lines))
-
-    if not args.skip_fci:
-        fci_lines = [
-            "===== FCI Reference =====",
-            f"Bond length (Angstrom): {args.bond_length}",
-            f"Basis: {args.basis}",
-            f"Charge: {args.charge}",
-            f"Spin (2S): {args.spin}",
-            f"Requested FCI roots: {args.fci_nroots}",
-            f"FCI gr energy (Hartree): {float(fci_energies[0])}",
-        ]
-        fci_lines.extend(
-            f"FCI excited state {state_idx} energy (Hartree): {float(state_energy)}"
-            for state_idx, state_energy in enumerate(fci_energies[1:], start=1)
+        reports.extend(
+            [
+                f"### ADAPT iteration {adapt_it}",
+                (
+                    f"ADAPT ground: {adapt_ground:.10f} Ha | "
+                    f"QSC-EOM ground: {qsc_ground:.10f} Ha"
+                ),
+            ]
         )
-        reports.append("\n".join(fci_lines))
+        reports.extend(_format_excited_state_table(qsceom_states, fci_states))
+        reports.append("")
 
-    report = "\n\n".join(reports) + "\n"
+    report = "\n".join(reports).rstrip() + "\n"
     print(report, end="")
 
     if args.output_file is None:
-        output_path = Path(__file__).resolve().parent / "h2_ground_output.txt"
+        output_path = Path(__file__).resolve().parents[1] / "output" / "h2_output.txt"
     else:
         output_path = Path(args.output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(report, encoding="utf-8")
-
-    if args.plot_file is None:
-        plot_path = output_path.with_name("h2_error_plot.png")
-    else:
-        plot_path = Path(args.plot_file)
-    _plot_metrics(
-        iterations=iterations,
-        adapt_errors=adapt_errors,
-        qsceom_errors=qsceom_errors,
-        adapt_max_gradients=adapt_max_gradients,
-        plot_path=plot_path,
-    )
 
 
 if __name__ == "__main__":
