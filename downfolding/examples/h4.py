@@ -38,6 +38,35 @@ def _build_h4_molecule(bond_length, arrangement):
     return symbols, geometry
 
 
+def _compute_hartree_fock_energy(symbols, geometry, basis, charge, spin):
+    try:
+        from pyscf import gto, scf
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "Hartree-Fock energy requires PySCF. Install it with: "
+            "`pip install pyscf`."
+        ) from exc
+
+    atom = [(symbols[i], tuple(float(x) for x in geometry[i])) for i in range(len(symbols))]
+    mol = gto.Mole()
+    mol.atom = atom
+    mol.unit = "angstrom"
+    mol.basis = basis
+    mol.charge = charge
+    mol.spin = spin
+    mol.symmetry = False
+    mol.build()
+
+    mf = scf.RHF(mol) if spin == 0 and mol.nelectron % 2 == 0 else scf.ROHF(mol)
+    mf.level_shift = 0.5
+    mf.diis_space = 12
+    mf.max_cycle = 100
+    mf.kernel()
+    if not mf.converged:
+        mf = scf.newton(mf).run()
+    return float(mf.e_tot)
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         description="H4 ADAPT-VQE example."
@@ -104,17 +133,6 @@ def build_parser():
         help="Maximum optimizer iterations per ADAPT step.",
     )
     parser.add_argument(
-        "--fci-nroots",
-        type=int,
-        default=4,
-        help="Number of FCI roots to compute for the reference section.",
-    )
-    parser.add_argument(
-        "--skip-fci",
-        action="store_true",
-        help="Skip computing/printing the FCI reference section.",
-    )
-    parser.add_argument(
         "--output-file",
         type=str,
         default=None,
@@ -128,60 +146,21 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def _compute_fci(symbols, geometry, basis, charge, spin, nroots):
-    try:
-        import numpy as np
-        from pyscf import fci, gto, scf
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError(
-            "FCI section requires PySCF and NumPy. Install with: "
-            "`pip install numpy pyscf`."
-        ) from exc
-
-    atom = [(symbols[i], tuple(float(x) for x in geometry[i])) for i in range(len(symbols))]
-    mol = gto.Mole()
-    mol.atom = atom
-    mol.unit = "angstrom"
-    mol.basis = basis
-    mol.charge = charge
-    mol.spin = spin
-    mol.symmetry = False
-    mol.build()
-
-    if mol.spin == 0 and mol.nelectron % 2 == 0:
-        mf = scf.RHF(mol)
-    else:
-        mf = scf.ROHF(mol)
-    mf.level_shift = 0.5
-    mf.diis_space = 12
-    mf.max_cycle = 100
-    mf.kernel()
-    if not mf.converged:
-        mf = scf.newton(mf).run()
-
-    cisolver = fci.FCI(mf)
-    cisolver.nroots = int(nroots)
-    energies, _ = cisolver.kernel()
-    energies = np.atleast_1d(np.asarray(energies, dtype=float))
-    return energies
-
-
-def _format_excited_state_table(qsceom_states, fci_states):
-    headers = ["State", "QSC-EOM (Ha)", "FCI (Ha)"]
-    state_count = max(len(qsceom_states), len(fci_states))
+def _format_excited_state_table(qsceom_states):
+    headers = ["S/N", "State", "QSC-EOM (Ha)"]
+    state_count = len(qsceom_states)
     rows = []
     for state_offset in range(state_count):
         qsceom_energy = (
             f"{qsceom_states[state_offset]:.10f}"
-            if state_offset < len(qsceom_states)
-            else "N/A"
         )
-        fci_energy = (
-            f"{fci_states[state_offset]:.10f}"
-            if state_offset < len(fci_states)
-            else "N/A"
+        rows.append(
+            [
+                str(state_offset + 1),
+                f"Excited state {state_offset + 1}",
+                qsceom_energy,
+            ]
         )
-        rows.append([f"Excited state {state_offset + 1}", qsceom_energy, fci_energy])
 
     widths = [
         max(len(headers[column]), *(len(row[column]) for row in rows))
@@ -198,7 +177,7 @@ def _format_excited_state_table(qsceom_states, fci_states):
         for column, cell in enumerate(cells):
             if header:
                 formatted.append(cell.center(widths[column]))
-            elif column == 0:
+            elif column < 2:
                 formatted.append(cell.ljust(widths[column]))
             else:
                 formatted.append(cell.rjust(widths[column]))
@@ -215,33 +194,21 @@ def _format_excited_state_table(qsceom_states, fci_states):
 
 def main():
     args = parse_args()
-    if args.fci_nroots <= 0:
-        raise ValueError("--fci-nroots must be > 0")
     adapt_vqe, qsc_eom = _load_adapt_vqe()
 
     basis = args.basis
     bond_length = args.bond_length
     arrangement = args.geometry
     symbols, geometry = _build_h4_molecule(bond_length, arrangement)
-
-    fci_energies = None
-    if not args.skip_fci:
-        fci_energies = _compute_fci(
-            symbols=symbols,
-            geometry=geometry,
-            basis=basis,
-            charge=args.charge,
-            spin=args.spin,
-            nroots=args.fci_nroots,
-        )
+    hartree_fock_energy = _compute_hartree_fock_energy(
+        symbols=symbols,
+        geometry=geometry,
+        basis=basis,
+        charge=args.charge,
+        spin=args.spin,
+    )
 
     shots = None if args.shots == 0 else args.shots
-    fci_summary = (
-        f"FCI roots: {args.fci_nroots} | "
-        f"FCI ground: {float(fci_energies[0]):.10f} Ha"
-        if fci_energies is not None
-        else "FCI: skipped"
-    )
     reports = [
         f"# H4 Energy Report — {arrangement.title()} geometry",
         (
@@ -250,9 +217,9 @@ def main():
         ),
         (
             f"Charge: {args.charge} | Spin (2S): {args.spin} | "
-            f"ADAPT iterations: {', '.join(str(value) for value in args.adapt_it)} | "
-            f"{fci_summary}"
+            f"ADAPT iterations: {', '.join(str(value) for value in args.adapt_it)}"
         ),
+        f"Hartree-Fock energy: {hartree_fock_energy:.10f} Ha",
         "",
     ]
     for adapt_it in args.adapt_it:
@@ -286,11 +253,6 @@ def main():
         adapt_ground = float(energies[-1])
         qsc_ground = float(eigvals[0])
         qsceom_states = [float(state_energy) for state_energy in eigvals[1:]]
-        fci_states = (
-            [float(state_energy) for state_energy in fci_energies[1:]]
-            if fci_energies is not None
-            else []
-        )
         reports.extend(
             [
                 f"### ADAPT iteration {adapt_it}",
@@ -298,7 +260,7 @@ def main():
                     f"ADAPT ground: {adapt_ground:.10f} Ha | "
                     f"QSC-EOM ground: {qsc_ground:.10f} Ha"
                 ),
-                *_format_excited_state_table(qsceom_states, fci_states),
+                *_format_excited_state_table(qsceom_states),
                 "",
             ]
         )

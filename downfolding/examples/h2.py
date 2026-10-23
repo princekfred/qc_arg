@@ -91,7 +91,10 @@ def build_parser():
         "--fci-nroots",
         type=int,
         default=4,
-        help="Number of FCI roots to compute for the reference section.",
+        help=(
+            "Total FCI roots including the ground state; N roots provide up to "
+            "N-1 excited states."
+        ),
     )
     parser.add_argument(
         "--skip-fci",
@@ -151,7 +154,7 @@ def _compute_fci(symbols, geometry, basis, charge, spin, nroots):
 
 
 def _format_excited_state_table(qsceom_states, fci_states):
-    headers = ["State", "QSC-EOM (Ha)", "FCI (Ha)"]
+    headers = ["S/N", "State", "QSC-EOM (Ha)", "FCI (Ha)"]
     state_count = max(len(qsceom_states), len(fci_states))
     rows = []
     for state_offset in range(state_count):
@@ -165,7 +168,14 @@ def _format_excited_state_table(qsceom_states, fci_states):
             if state_offset < len(fci_states)
             else "N/A"
         )
-        rows.append([f"Excited state {state_offset + 1}", qsceom_energy, fci_energy])
+        rows.append(
+            [
+                str(state_offset + 1),
+                f"Excited state {state_offset + 1}",
+                qsceom_energy,
+                fci_energy,
+            ]
+        )
 
     widths = [
         max(len(headers[column]), *(len(row[column]) for row in rows))
@@ -182,7 +192,7 @@ def _format_excited_state_table(qsceom_states, fci_states):
         for column, cell in enumerate(cells):
             if header:
                 formatted.append(cell.center(widths[column]))
-            elif column == 0:
+            elif column < 2:
                 formatted.append(cell.ljust(widths[column]))
             else:
                 formatted.append(cell.rjust(widths[column]))
@@ -220,7 +230,8 @@ def main():
 
     shots = None if args.shots == 0 else args.shots
     fci_summary = (
-        f"FCI roots: {args.fci_nroots} | "
+        f"FCI roots (incl. ground): {len(fci_energies)} | "
+        f"FCI excited states: {len(fci_energies) - 1} | "
         f"FCI ground: {float(fci_energies[0]):.10f} Ha"
         if fci_energies is not None
         else "FCI: skipped"

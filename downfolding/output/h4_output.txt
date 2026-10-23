@@ -1,0 +1,37 @@
+# H4 Energy Report — Square geometry
+Bond length: 1.5 Angstrom | Basis: sto-3g | Active space: 4e/4o
+Charge: 0 | Spin (2S): 0 | ADAPT iterations: 4
+Hartree-Fock energy: -1.7139986382 Ha
+
+### ADAPT iteration 4
+ADAPT ground: -1.8675190294 Ha | QSC-EOM ground: -1.9332694905 Ha
++-----+------------------+---------------+
+| S/N |      State       |  QSC-EOM (Ha) |
++-----+------------------+---------------+
+| 1   | Excited state 1  | -1.9192771901 |
+| 2   | Excited state 2  | -1.8152756241 |
+| 3   | Excited state 3  | -1.8037408264 |
+| 4   | Excited state 4  | -1.7967167879 |
+| 5   | Excited state 5  | -1.6518961216 |
+| 6   | Excited state 6  | -1.6080307309 |
+| 7   | Excited state 7  | -1.4317906501 |
+| 8   | Excited state 8  | -1.4241695531 |
+| 9   | Excited state 9  | -1.4149999092 |
+| 10  | Excited state 10 | -1.3614115730 |
+| 11  | Excited state 11 | -1.3359873385 |
+| 12  | Excited state 12 | -1.3003751046 |
+| 13  | Excited state 13 | -1.2781260902 |
+| 14  | Excited state 14 | -1.2715999009 |
+| 15  | Excited state 15 | -1.2333299172 |
+| 16  | Excited state 16 | -1.2184984143 |
+| 17  | Excited state 17 | -1.1215409364 |
+| 18  | Excited state 18 | -1.1183393996 |
+| 19  | Excited state 19 | -1.1060383947 |
+| 20  | Excited state 20 | -1.1055656610 |
+| 21  | Excited state 21 | -0.9755141065 |
+| 22  | Excited state 22 | -0.9122164074 |
+| 23  | Excited state 23 | -0.9067112582 |
+| 24  | Excited state 24 | -0.7061622098 |
+| 25  | Excited state 25 | -0.4646471824 |
+| 26  | Excited state 26 | -0.4302817469 |
++-----+------------------+---------------+
